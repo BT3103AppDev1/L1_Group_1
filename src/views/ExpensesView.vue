@@ -1,0 +1,1 @@
+<template><div class="page"><h1>Expenses</h1><p>TODO: M4 builds this</p></div></template>

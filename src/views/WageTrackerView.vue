@@ -1,0 +1,1 @@
+<template><div class="page"><h1>Wage Tracker</h1><p>TODO: M6 builds this</p></div></template>

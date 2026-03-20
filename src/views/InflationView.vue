@@ -1,0 +1,1 @@
+<template><div class="page"><h1>My Inflation</h1><p>TODO: Sprint 2</p></div></template>

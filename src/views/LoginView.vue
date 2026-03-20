@@ -1,0 +1,1 @@
+<template><div class="page"><h1>Login</h1><p>TODO: M2 builds this</p></div></template>

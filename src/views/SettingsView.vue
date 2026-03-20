@@ -1,0 +1,1 @@
+<template><div class="page"><h1>Settings</h1><p>TODO: later</p></div></template>
