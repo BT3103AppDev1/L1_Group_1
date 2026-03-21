@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only read/write their own data (NFR-04: Access Control)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Expense records (FR-03)
+      match /expenses/{expenseId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Wage records (FR-05)
+      match /wages/{wageId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // CPI data - readable by all authenticated users (FR-10)
+    match /cpi/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false; // Admin-only via Cloud Functions
+    }
+  }
+}
