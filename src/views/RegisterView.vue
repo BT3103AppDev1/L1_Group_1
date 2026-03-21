@@ -98,6 +98,9 @@ function validate() {
   if (!password.value) {
     errors.password = 'Password is required.'
     valid = false
+  } else if (password.value.length < 8) {
+    errors.password = 'Password must be at least 8 characters.'
+    valid = false
   }
 
   if (password.value !== confirmPassword.value) {
@@ -127,7 +130,7 @@ async function handleRegister() {
         errors.email = 'Invalid email format.'
         break
       case 'auth/weak-password':
-        errors.password = 'Password must be at least 6 characters.'
+        errors.password = 'Password must be at least 8 characters.'
         break
       default:
         errors.general = 'Registration failed. Please try again.'
