@@ -4,6 +4,15 @@
     <div class="sidebar-logo">P3</div>
     <div class="sidebar-subtitle">Purchasing Power Pro</div>
 
+    <nav>
+      <router-link to="/expenses" class="nav-btn" active-class="active">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+        Expenses
+      </router-link>
+    </nav>
+
     <div class="sidebar-spacer"></div>
 
     <button class="nav-btn logout-btn" @click="logout">
@@ -58,6 +67,11 @@ export default {
   padding: 0 12px; margin-bottom: 32px;
   letter-spacing: 1.5px; text-transform: uppercase;
 }
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 .sidebar-spacer {
   flex: 1;
 }
@@ -69,6 +83,15 @@ export default {
   font-family: var(--font-body); cursor: pointer;
   transition: all 0.2s;
   width: 100%; text-align: left;
+  text-decoration: none;
+}
+.nav-btn:hover {
+  background: var(--sidebar-hover);
+}
+.nav-btn.active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
 }
 .logout-btn:hover {
   background: rgba(239, 68, 68, 0.15);
