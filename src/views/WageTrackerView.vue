@@ -95,9 +95,12 @@
               </td>
               <td>
                 <div style="display:flex; gap:6px; justify-content:flex-end;">
-                  <button class="icon-btn icon-btn-accent" @click="openEdit(wage)" title="Edit">
-                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                  </button>
+                    <button class="icon-btn icon-btn-accent" @click="openEdit(wage)" title="Edit">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    <button class="icon-btn icon-btn-danger" :disabled="deletingId" @click="deleteWage(wage.id)" title="Delete">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a1 1 0 00-1 1v3h6V4a1 1 0 00-1-1m-4 0h4"/></svg>
+                    </button> 
                 </div>
               </td>
             </tr>
@@ -118,6 +121,7 @@ import {
   addDoc,
   doc,
   updateDoc,
+  deleteDoc,
   query,
   orderBy,
   onSnapshot,
@@ -141,8 +145,11 @@ export default {
       editForm: { amount: '', effectiveDate: '' },
       editError: '',
       editSubmitting: false,
+      
+      // ─── Delete state ───────────────────────────────────────────
+      deletingId: null,
     }
-  },
+  },     
 
   mounted() {
     this.listenToWages()
@@ -264,6 +271,20 @@ export default {
       }
     },
 
+    // ─── Delete entry ────────────────────────────────────────────
+    async deleteWage(wageId) {
+      if (!confirm('Delete this wage entry? This cannot be undone.')) return
+      this.deletingId = wageId
+      try {
+        const uid = auth.currentUser.uid
+        await deleteDoc(doc(db, 'users', uid, 'wages', wageId))
+      } catch (err) {
+        console.error('Error deleting wage:', err)
+      } finally {
+        this.deletingId = null
+      }
+    },
+
     // ─── % Change calculation ────────────────────────────────────
     calcChange(index) {
       if (index === this.wages.length - 1) return { text: '-', color: 'var(--text-muted)' }
@@ -325,6 +346,16 @@ export default {
   background: #16a34a;
   color: #fff;
 }
+
+.icon-btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.icon-btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  color: #fff;
+}
+
 .icon-btn-muted {
   background: var(--surface-2, #f1f5f9);
   color: var(--text-muted, #94a3b8);
