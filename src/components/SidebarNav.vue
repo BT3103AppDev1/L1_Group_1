@@ -1,6 +1,18 @@
 <!-- src/components/SidebarNav.vue -->
 <template>
   <aside class="sidebar">
+    <!-- Logout Confirm Modal -->
+    <ConfirmModal
+      v-model="showLogoutModal"
+      variant="logout"
+      title="Log Out"
+      message="Are you sure you want to log out of Purchasing Power Pro?"
+      confirmLabel="Log Out"
+      cancelLabel="Stay"
+      :loading="loggingOut"
+      @confirm="confirmLogout"
+      @cancel="showLogoutModal = false"
+    />
     <div class="sidebar-logo">P3</div>
     <div class="sidebar-subtitle">Purchasing Power Pro</div>
 
@@ -15,7 +27,7 @@
 
     <div class="sidebar-spacer"></div>
 
-    <button class="nav-btn logout-btn" @click="logout">
+    <button class="nav-btn logout-btn" @click="showLogoutModal = true">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
         <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
       </svg>
@@ -27,16 +39,28 @@
 <script>
 import { auth } from '../firebase'
 import { signOut } from 'firebase/auth'
+import ConfirmModal from './ConfirmModal.vue'
 
 export default {
   name: 'SidebarNav',
+  components: { ConfirmModal },
+  data() {
+    return {
+      showLogoutModal: false,
+      loggingOut: false,
+    }
+  },
   methods: {
-    async logout() {
+    async confirmLogout() {
+      this.loggingOut = true
       try {
         await signOut(auth)
         this.$router.push('/login')
       } catch (err) {
         console.error('Logout failed:', err)
+      } finally {
+        this.loggingOut = false
+        this.showLogoutModal = false
       }
     },
   },
