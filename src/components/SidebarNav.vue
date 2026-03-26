@@ -11,6 +11,13 @@
         </svg>
         Expenses
       </router-link>
+
+      <router-link to="/wages" class="nav-btn" active-class="active">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2zM12 14c-4.418 0-8 1.79-8 4v2h16v-2c0-2.21-3.582-4-8-4z" />
+        </svg>
+        Wage Tracker
+      </router-link>
     </nav>
 
     <div class="sidebar-spacer"></div>
@@ -25,6 +32,7 @@
 </template>
 
 <script>
+import router from '@/router';
 import { auth } from '../firebase'
 import { signOut } from 'firebase/auth'
 
