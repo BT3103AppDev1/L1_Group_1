@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 
 import DashboardView from '../views/DashboardView.vue'
+import EditExpenseView from '../views/Editexpenseview.vue'
 import ExpensesView from '../views/ExpensesView.vue'
 import InflationView from '../views/InflationView.vue'
 import WageTrackerView from '../views/WageTrackerView.vue'
@@ -15,6 +16,7 @@ const routes = [
   { path: '/login', name: 'Login', component: LoginView, meta: { hideLayout: true } },
   { path: '/register', name: 'Register', component: RegisterView, meta: { hideLayout: true } },
   { path: '/', name: 'Dashboard', component: DashboardView },
+  { path: '/expenses/:id/edit', name: 'EditExpense', component: EditExpenseView },
   { path: '/expenses', name: 'Expenses', component: ExpensesView },
   { path: '/inflation', name: 'My Inflation', component: InflationView },
   { path: '/wages', name: 'Wage Tracker', component: WageTrackerView },

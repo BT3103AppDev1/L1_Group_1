@@ -1,5 +1,17 @@
 <template>
   <div class="flex-col">
+    <!-- Delete Confirm Modal -->
+    <ConfirmModal
+      v-model="showDeleteModal"
+      variant="danger"
+      title="Delete Expense"
+      message="This expense will be permanently removed. This action cannot be undone."
+      confirmLabel="Delete"
+      cancelLabel="Cancel"
+      :loading="deleting"
+      @confirm="confirmDelete"
+      @cancel="showDeleteModal = false"
+    />
     <!-- Header -->
     <div class="flex-between">
       <div class="fs-12 text-secondary">
@@ -83,7 +95,7 @@
             <td style="font-weight:600;">${{ (exp.price * exp.quantity).toFixed(2) }}</td>
             <td>
               <div style="display:flex; gap:6px;">
-                <button class="btn-icon" style="color:var(--text-secondary);" @click="editExpense(exp)">
+                <button class="btn-icon" style="color:var(--text-secondary);" @click="$router.push(`/expenses/${exp.id}/edit`)">
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </button>
                 <button class="btn-icon" style="color:var(--danger);" @click="deleteExpense(exp.id)">
@@ -102,6 +114,7 @@
 </template>
 
 <script>
+import ConfirmModal from '../components/ConfirmModal.vue'
 import { db, auth } from '../firebase'
 import {
   collection,
@@ -123,6 +136,7 @@ const CATEGORIES = [
 
 export default {
   name: 'ExpensesView',
+  components: { ConfirmModal },
   data() {
     return {
       CATEGORIES,
@@ -134,7 +148,10 @@ export default {
       form: { item: '', price: '', quantity: '1', date: '', category: '' },
       formError: '',
       filterCat: 'All',
-      unsubscribe: null, // Firestore listener cleanup
+      unsubscribe: null,
+      showDeleteModal: false,
+      pendingDeleteId: null,
+      deleting: false,
     }
   },
 
@@ -295,13 +312,22 @@ export default {
       this.showForm = true
     },
 
-    async deleteExpense(id) {
+    deleteExpense(id) {
+      this.pendingDeleteId = id
+      this.showDeleteModal = true
+    },
+
+    async confirmDelete() {
+      this.deleting = true
       try {
-        await this.deleteExpenseFromFirestore(id)
-        // No need to update local array — onSnapshot handles it
+        await this.deleteExpenseFromFirestore(this.pendingDeleteId)
+        this.showDeleteModal = false
+        this.pendingDeleteId = null
       } catch (error) {
         console.error('Error deleting expense:', error)
         alert('Failed to delete expense. Please try again.')
+      } finally {
+        this.deleting = false
       }
     },
   },
