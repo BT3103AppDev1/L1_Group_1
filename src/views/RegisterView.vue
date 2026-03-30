@@ -31,7 +31,7 @@
             v-model="password"
             type="password"
             class="form-input"
-            placeholder="Min 8 characters"
+            placeholder="Min 8 chars, 1 upper, 1 lower, 1 number/symbol"
             required
           />
           <span v-if="errors.password" class="text-danger fs-12 mt-4" style="display:block">{{ errors.password }}</span>
@@ -100,6 +100,15 @@ function validate() {
     valid = false
   } else if (password.value.length < 8) {
     errors.password = 'Password must be at least 8 characters.'
+    valid = false
+  } else if (!/[A-Z]/.test(password.value)) {
+    errors.password = 'Password must contain at least one uppercase letter.'
+    valid = false
+  } else if (!/[a-z]/.test(password.value)) {
+    errors.password = 'Password must contain at least one lowercase letter.'
+    valid = false
+  } else if (!/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password.value)) {
+    errors.password = 'Password must contain at least one number or symbol.'
     valid = false
   }
 
