@@ -4,13 +4,24 @@
     <!-- Header -->
     <div class="flex-between">
       <div class="fs-12 text-secondary">
-        Your personal inflation vs official CPI by category
+        Your Personal Inflation vs Official CPI Inflation (2024 as base year) by category
       </div>
+    </div>
+
+    <!-- Year Selector -->
+     <div style="margin:12px 0;">
+      <label class="fs-12 text-secondary">Select Year:</label>
+      <select v-model="selectedYear" style="margin-left:8px; padding:4px 8px;">
+        <option v-for="year in availableYears":key="year":value="year">{{ year }}</option>
+      </select>
     </div>
 
     <!-- CPI unavailable note -->
     <div v-if="cpiError" class="card" style="font-size:13px; color:var(--text-muted); text-align:center; padding:12px;">
       CPI data temporarily unavailable. Showing personal inflation rate only.
+    </div>
+    <div v-if="cpiLoading" class="card" style="text-align:center; padding:20px; font-size:13px; color:var(--text-muted);">
+      Fetching latest CPI data from SingStat...
     </div>
 
     <!-- Summary Cards -->
@@ -30,7 +41,7 @@
         </div>
         <template v-else>
           <div class="fs-24 fw-600" style="color:var(--accent);">
-            {{ cpiOverall.toFixed(2) }}%
+            {{ cpiOverall != null ? cpiOverall.toFixed(2) + '%' : 'N/A' }}
           </div>
           <!-- AC2: source and period clearly visible -->
           <div class="fs-12 text-secondary" style="margin-top:4px;">
@@ -114,14 +125,15 @@ export default {
 },
 
   setup() {
-    const { cpiOverall, cpiByCategory, cpiSource, cpiPeriod, cpiError } = useCPI()
-    return { cpiOverall, cpiByCategory, cpiSource, cpiPeriod, cpiError }
+    const { cpiOverall, cpiByCategory, cpiSource, cpiPeriod, cpiError, cpiLoading, availableYears, selectedYear } = useCPI()
+    return { cpiOverall, cpiByCategory, cpiSource, cpiPeriod, cpiError, cpiLoading, availableYears, selectedYear }
   },
 
   computed: {
     difference() {
-      if (this.personalRate === null) return null
-      return parseFloat((this.personalRate - this.cpiOverall).toFixed(2))
+      const cpi = this.cpiOverall?.value ?? this.cpiOverall
+      if (this.personalRate == null || cpi == null) return null
+      return parseFloat((this.personalRate - cpi).toFixed(2))
     },
     
     chartData() {
