@@ -2,6 +2,7 @@ import { ref } from 'vue'
 
 // Hardcoded CPI values (SingStat, Feb 2026) 
 // TODO: Replace with live fetch once Crystal is done. Need to come back to this.
+// MAY HAVE MERGE CONFLICT!!!
 
 const CPI_FUNCTION_URL = null 
 
