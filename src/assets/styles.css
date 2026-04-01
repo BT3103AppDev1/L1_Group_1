@@ -144,3 +144,68 @@ td { padding: 12px; font-size: 13px; }
 .fs-15 { font-size: 15px; }
 .mt-4 { margin-top: 4px; }
 .mb-20 { margin-bottom: 20px; }
+
+/* --- For the InflationView page */
+.fw-600 { font-weight: 600; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.text-accent { color: var(--accent); }
+.accent-dark { color: var(--accent-dark); }
+.sidebar-hover { background: rgba(255,255,255,0.06); }
+
+.toggle-group {
+  display: inline-flex;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+  width: fit-content;
+}
+.toggle-btn {
+  padding: 7px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.toggle-btn.active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.badge-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--danger);
+}
+.badge-down {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.legend-dot {
+  display: inline-block;
+  border-radius: 3px;
+}
