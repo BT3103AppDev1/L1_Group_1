@@ -147,6 +147,10 @@ export function useCPI_MoM() {
     return monthlyHistory.value[ym]?.overall ?? null
   }
 
+  function getMonthlyCategories(ym) {
+    return monthlyHistory.value[ym]?.categories ?? {}
+  }
+
   // ─── Get MoM % for a single category ─────────────────────────────────────
   function getCategoryCPI(category) {
     return cpiByCategory.value?.[category] ?? null
@@ -172,5 +176,6 @@ export function useCPI_MoM() {
     fetchCPI,
     getCategoryCPI,
     getMonthlyRate,
+    getMonthlyCategories
   }
 }

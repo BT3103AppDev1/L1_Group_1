@@ -176,6 +176,7 @@ export function useInflation() {
     error,
     hasEnoughData,
     fetchExpenses,
+    expenses,
     personalInflationMoM,
     personalInflationYoY,
     categoryInflationMoM,
