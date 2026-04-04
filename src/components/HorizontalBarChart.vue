@@ -12,22 +12,14 @@
         <div class="hbar-bar-row">
           <template v-if="d.personal !== null && d.personal !== undefined">
             <div class="hbar-bar-wrap">
-              <div
-                class="hbar-bar"
-                :style="{
-                  width: (d.personal / maxVal * 100) + '%',
-                  background: (d.cpi === null || d.personal > d.cpi) ? '#EF4444' : '#0FA878'
-                }"
-              ></div>
+              <div class="hbar-bar-inner" :style="barStyle(d.personal, d)"></div>
             </div>
-            <span class="hbar-val" :style="{ color: (d.cpi === null || d.personal > d.cpi) ? '#EF4444' : '#0FA878' }">
+            <span class="hbar-val" :style="{ color: valColor(d) }">
               {{ d.personal.toFixed(1) }}%
             </span>
           </template>
           <template v-else>
-            <div class="hbar-bar-wrap">
-              <div class="hbar-bar" style="width:0%"></div>
-            </div>
+            <div class="hbar-bar-wrap"><div class="hbar-bar-inner"></div></div>
             <span class="hbar-na">N/A</span>
           </template>
         </div>
@@ -35,10 +27,7 @@
         <!-- CPI bar -->
         <div class="hbar-bar-row">
           <div class="hbar-bar-wrap">
-            <div
-              class="hbar-bar hbar-bar-cpi"
-              :style="{ width: d.cpi !== null ? (d.cpi / maxVal * 100) + '%' : '0%' }"
-            ></div>
+            <div class="hbar-bar-inner hbar-bar-cpi" :style="barStyle(d.cpi, null)"></div>
           </div>
           <span class="hbar-cpi-val">
             {{ d.cpi !== null ? d.cpi.toFixed(1) + '%' : '—' }}
@@ -57,10 +46,60 @@ export default {
     data: { type: Array, required: true },
   },
   computed: {
-    maxVal() {
-      const vals = this.data.flatMap(d => [d.personal ?? 0, d.cpi ?? 0])
+    maxAbsVal() {
+      const vals = this.data.flatMap(d => [
+        Math.abs(d.personal ?? 0),
+        Math.abs(d.cpi ?? 0),
+      ])
       const max = Math.max(...vals)
       return max > 0 ? max : 1
+    },
+    hasNegative() {
+      return this.data.some(
+        d => (d.personal != null && d.personal < 0) || (d.cpi != null && d.cpi < 0)
+      )
+    },
+  },
+  methods: {
+    barStyle(value, d) {
+      if (value === null || value === undefined) return { width: '0%' }
+
+      const pct = (Math.abs(value) / this.maxAbsVal) * 50 // half-width since center is 50%
+
+      if (!this.hasNegative) {
+        // No negatives in dataset — simple left-aligned bars
+        const fullPct = (Math.abs(value) / this.maxAbsVal) * 100
+        const bg = d ? this.barColor(d) : undefined
+        return {
+          width: fullPct + '%',
+          left: '0%',
+          ...(bg ? { background: bg } : {}),
+        }
+      }
+
+      // Diverging layout: center axis at 50%
+      const bg = d ? this.barColor(d) : undefined
+      if (value >= 0) {
+        return {
+          width: pct + '%',
+          left: '50%',
+          ...(bg ? { background: bg } : {}),
+        }
+      } else {
+        return {
+          width: pct + '%',
+          left: (50 - pct) + '%',
+          ...(bg ? { background: bg } : {}),
+        }
+      }
+    },
+    barColor(d) {
+      if (d.cpi === null || d.cpi === undefined || d.personal > d.cpi) return '#EF4444'
+      return '#0FA878'
+    },
+    valColor(d) {
+      if (d.cpi === null || d.cpi === undefined || d.personal > d.cpi) return '#EF4444'
+      return '#0FA878'
     },
   },
 }
@@ -106,14 +145,16 @@ export default {
   background: var(--border, #F3F4F6);
   border-radius: 4px;
   height: 10px;
+  position: relative;
   overflow: hidden;
 }
 
-.hbar-bar {
+.hbar-bar-inner {
+  position: absolute;
+  top: 0;
   height: 100%;
   border-radius: 4px;
-  transition: width 0.4s ease;
-  min-width: 0;
+  transition: width 0.4s ease, left 0.4s ease;
 }
 
 .hbar-bar-cpi {
