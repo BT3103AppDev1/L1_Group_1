@@ -41,6 +41,7 @@ export function useCPI_YoY() {
   const cpiPeriod     = ref('')
   const cpiLoading    = ref(true)
   const cpiError      = ref(null)
+  const yearlyHistory = ref({})
 
 
   async function fetchSeries({ search, seriesNo }) {
@@ -66,6 +67,18 @@ export function useCPI_YoY() {
     return null
   }
 
+  // Build yearly history of CPI data (for cpi comparison page)
+  function buildHistory(columns, mapped) {
+    columns.forEach(col => {
+      const year = col.key.trim()
+      if (!year.match(/^\d{4}$/)) return
+      const val = parseFloat(col.value)
+      if (isNaN(val)) return
+      if (!yearlyHistory.value[year]) yearlyHistory.value[year] = {}
+      yearlyHistory.value[year][mapped] = val
+    })
+  }
+
   // ─── Live fetch
   async function fetchCPI() {
     cpiLoading.value = true
@@ -82,6 +95,8 @@ export function useCPI_YoY() {
           console.warn(`useCPI_YoY: row not found for ${mapped}`)
           return
         }
+
+        buildHistory(row.columns, mapped)
         const latest = getLatestValue(row.columns)
         if (!latest) return
 
@@ -107,6 +122,17 @@ export function useCPI_YoY() {
     }
   }
 
+  // Get YoY inflation rate for a specific period (for cpi comparison page)
+  function getYearlyRate(year) {
+    return yearlyHistory.value[year]?.overall ?? null
+  }
+
+  // Get YoY category inflation rate for a specific period (for cpi comparison page)
+  function getYearlyCategories(year) {
+    const { overall, ...categories } = yearlyHistory.value[year] ?? {}
+    return categories
+  }
+
   // ─── Get YoY % for a single category ─────────────────────────────────────
   function getCategoryCPI(category) {
     return cpiByCategory.value?.[category] ?? null
@@ -130,5 +156,7 @@ export function useCPI_YoY() {
     cpiError,
     fetchCPI,
     getCategoryCPI,
+    getYearlyRate,
+    getYearlyCategories,
   }
 }
