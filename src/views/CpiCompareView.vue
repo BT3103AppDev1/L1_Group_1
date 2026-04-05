@@ -1,12 +1,6 @@
 <template>
   <div class="flex-col">
 
-    <div class="flex-between">
-      <div class="fs-12 text-secondary">
-        Your personal inflation vs official CPI ({{ comparisonLabel }}) by category
-      </div>
-    </div>
-
     <!-- Loading -->
     <div v-if="cpiLoading || momCpiLoading || inflationLoading" class="card"
       style="text-align:center; padding:20px; font-size:13px; color:var(--text-muted);">
@@ -27,28 +21,33 @@
 
     <template v-if="!cpiLoading && !momCpiLoading && !inflationLoading && hasEnoughData">
 
+      <div class="toggle-group">
+        <button class="toggle-btn" :class="{ active: selectedMode === 'month' }"
+          @click="selectedMode = 'month'">
+          Month-to-Month
+        </button>
+        <button
+          class="toggle-btn"
+          :class="{ active: selectedMode === 'year' }"
+          :disabled="!hasYoYData"
+          :style="{
+            opacity: hasYoYData ? 1 : 0.4,
+            cursor: hasYoYData ? 'pointer' : 'not-allowed'
+          }"
+          :title="!hasYoYData ? 'Log expenses across 13+ months to unlock Year-to-Year view' : ''"
+          @click="hasYoYData && (selectedMode = 'year')">
+          Year-to-Year
+        </button>
+      </div>
+
+      <div v-if="!hasYoYData" class="card" style="padding:10px 16px; font-size:12px; color:var(--text-muted); border-left:3px solid var(--border);">
+        📅 Year-to-Year view requires 13+ months of expense data.
+      </div>
+
       <!-- Period Selector -->
       <div class="card" style="padding:16px 20px;">
-        <div class="fs-12 text-secondary mb-8">Compare period</div>
+        <div class="fs-12 text-secondary mb-8">Select specific period to compare</div>
         <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-
-          <!-- Mode toggle -->
-          <div style="display:flex; gap:6px;">
-            <button
-              class="btn-sm"
-              :style="{ opacity: selectedMode === 'month' ? 1 : 0.4 }"
-              @click="selectedMode = 'month'"
-            >
-              Month
-            </button>
-            <button
-              class="btn-sm"
-              :style="{ opacity: selectedMode === 'year' ? 1 : 0.4 }"
-              @click="selectedMode = 'year'"
-            >
-              Year
-            </button>
-          </div>
 
           <!-- Year selector -->
           <div style="display:flex; align-items:center; gap:8px;">
@@ -90,7 +89,7 @@
               {{ activeCpi.overall.toFixed(2) }}%
             </div>
             <div class="fs-12 text-secondary" style="margin-top:4px;">
-              {{ activeCpi.source }}
+              Source: Department of Statistics Singapore · {{ formatPeriod(activeCpi.period) }}
             </div>
           </template>
         </div>
@@ -132,7 +131,7 @@
         </div>
 
         <div v-if="activeCpi" class="fs-12 text-secondary" style="margin-top:16px;">
-          Source: {{ activeCpi.source }} · Reference period: {{ activeCpi.period }}
+          Source: Department of Statistics Singapore · {{ formatPeriod(activeCpi.period) }} | Reference period: {{ activeCpi.period }}
         </div>
       </div>
 
@@ -193,6 +192,7 @@ export default {
       hasEnoughData,
       fetchExpenses,
       expenses,
+      personalInflationYoY,
     } = useInflation()
 
     fetchCPI()
@@ -208,6 +208,7 @@ export default {
       getMonthlyCategories,
       getYearlyRate,
       getYearlyCategories,
+      personalInflationYoY,
     }
   },
 
@@ -255,11 +256,9 @@ export default {
         const currentKey = Object.keys(byMonth)
           .filter(ym => ym.startsWith(this.selectedYear))
           .sort().at(-1)
-        const prevYear = String(parseInt(this.selectedYear) - 1)
-        const prevKey = Object.keys(byMonth)
-          .filter(ym => ym.startsWith(prevYear))
-          .sort().at(-1)
-        if (!currentKey || !prevKey) return null
+        if (!currentKey) return null
+        const prevKey = this.subtractMonths(currentKey, 12)
+        if (!byMonth[prevKey]) return null
         return this.calcWeightedInflation(
           this.calcCategoryRates(byMonth[prevKey], byMonth[currentKey])
         )
@@ -282,11 +281,9 @@ export default {
         const currentKey = Object.keys(byMonth)
           .filter(ym => ym.startsWith(this.selectedYear))
           .sort().at(-1)
-        const prevYear = String(parseInt(this.selectedYear) - 1)
-        const prevKey = Object.keys(byMonth)
-          .filter(ym => ym.startsWith(prevYear))
-          .sort().at(-1)
-        if (!currentKey || !prevKey) return {}
+        if (!currentKey) return {}
+        const prevKey = this.subtractMonths(currentKey, 12)
+        if (!byMonth[prevKey]) return {}
         return this.calcCategoryRates(byMonth[prevKey], byMonth[currentKey])
       } else {
         const sortedMonths = Object.keys(byMonth).sort()
@@ -315,7 +312,7 @@ export default {
         if (overallRateYear === null) {
           return {
             ...this.cpiData,
-            period: `${this.selectedYear} (latest available)`,
+            period: `${this.cpiData.period} (latest available)`,
             source: `Department of Statistics Singapore · latest`
           }
         }
@@ -343,7 +340,7 @@ export default {
         if (overallRate === null) {
           return {
             ...this.momCpiData,
-            period: `${this.selectedPeriod} (latest available)`,
+            period: `${this.momCpiData.period} (latest available)`,
             source: `Department of Statistics Singapore · latest`
           }
         }
@@ -376,6 +373,10 @@ export default {
             (this.activeCpi.categories[cat] ?? this.activeCpi.overall).toFixed(2)
           )
         }))
+    },
+
+    hasYoYData() {
+      return this.personalInflationYoY !== null
     }
   },
 
@@ -443,7 +444,22 @@ export default {
       return totalWeight === 0
         ? null
         : parseFloat((weightedSum / totalWeight).toFixed(2))
-    }
+    },
+
+    subtractMonths(yearMonth, n) {
+      const [year, month] = yearMonth.split('-').map(Number)
+      const date = new Date(year, month - 1 - n, 1)
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    },
+
+    formatPeriod(period) {
+      if (!period) return period
+      const parts = period.split('-')
+      if (parts.length !== 2) return period
+      const [year, month] = parts
+      const date = new Date(year, parseInt(month) - 1)
+      return date.toLocaleString('en-SG', { month: 'short', year: 'numeric' })
+    },
   }
 }
 </script>
