@@ -53,7 +53,7 @@
           <div class="card">
             <div class="fs-12 text-secondary mb-8">Your Personal Inflation</div>
             <div v-if="personalInflation !== null" style="font-family:var(--font-display); font-size:36px; font-weight:700;">
-              {{ personalInflation.toFixed(1) }}%
+              {{ personalInflation.toFixed(2) }}%
             </div>
             <div v-else style="font-family:var(--font-display); font-size:36px; font-weight:700; color:var(--text-muted);">--</div>
             <div class="text-muted mt-4" style="font-size:11px;">
@@ -64,7 +64,7 @@
           <div class="card">
             <div class="fs-12 text-secondary mb-8">CPI (National Average)</div>
             <div style="font-family:var(--font-display); font-size:36px; font-weight:700;">
-              {{ activeCpiData?.overall?.toFixed(1) ?? '--' }}%
+              {{ activeCpiData?.overall?.toFixed(2) ?? '--' }}%
             </div>
             <div class="text-muted mt-4" style="font-size:11px;">Source: {{ activeCpiData?.source ?? '—' }}</div>
           </div>
@@ -73,7 +73,7 @@
             <div class="fs-12 text-secondary mb-8">Difference from CPI</div>
             <div v-if="diffFromCPI !== null" style="font-family:var(--font-display); font-size:36px; font-weight:700;"
               :style="{ color: diffFromCPI >= 0 ? 'var(--danger)' : 'var(--accent)' }">
-              {{ diffFromCPI >= 0 ? '+' : '' }}{{ diffFromCPI.toFixed(1) }}%
+              {{ diffFromCPI >= 0 ? '+' : '' }}{{ diffFromCPI.toFixed(2) }}%
             </div>
             <div v-else style="font-family:var(--font-display); font-size:36px; font-weight:700; color:var(--text-muted);">--</div>
           </div>
