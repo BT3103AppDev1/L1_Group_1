@@ -145,10 +145,12 @@ export default {
       submitting: false,
       showForm: false,
       editingId: null,
-      form: { item: '', price: '', quantity: '1', date: '', category: '' },
+      form: { item: '', price: '', quantity: '1', date: '', category: '' },  // Default values
       formError: '',
       filterCat: 'All',
-      unsubscribe: null,
+      unsubscribe: null,  // Holds the Firestore unsubscribe function for proper cleanup
+
+      // For delete modal state
       showDeleteModal: false,
       pendingDeleteId: null,
       deleting: false,
@@ -156,9 +158,12 @@ export default {
   },
 
   computed: {
+    // Sum of all expenses (price × quantity) formatted to 2 decimal places
     expenseTotal() {
       return this.expenses.reduce((s, e) => s + e.price * e.quantity, 0).toFixed(2)
     },
+
+    // Expenses filtered by the active category tab
     filteredExpenses() {
       return this.filterCat === 'All'
         ? this.expenses
@@ -171,14 +176,14 @@ export default {
   },
 
   beforeUnmount() {
-    // Clean up Firestore listener when leaving page
+    // Clean up the Firestore real-time listener to prevent memory leaks when leaving page
     if (this.unsubscribe) {
       this.unsubscribe()
     }
   },
 
   methods: {
-    // ─── Firestore: Real-time listener ─────────────────────────
+    // Sets up a real-time Firestore listener so the table updates instantly when expenses are added, edited, or deleted from any device
     listenToExpenses() {
       const uid = auth.currentUser.uid
       const expensesRef = collection(db, 'users', uid, 'expenses')
@@ -196,7 +201,7 @@ export default {
       })
     },
 
-    // ─── Firestore: Add new expense ────────────────────────────
+    // Writes a new expense document to Firestore
     async addExpenseToFirestore(expenseData) {
       const uid = auth.currentUser.uid
       const expensesRef = collection(db, 'users', uid, 'expenses')
@@ -206,7 +211,7 @@ export default {
       })
     },
 
-    // ─── Firestore: Update existing expense ────────────────────
+    // Updates an existing expense document in Firestore
     async updateExpenseInFirestore(expenseId, expenseData) {
       const uid = auth.currentUser.uid
       const expenseRef = doc(db, 'users', uid, 'expenses', expenseId)
@@ -216,14 +221,14 @@ export default {
       })
     },
 
-    // ─── Firestore: Delete expense ─────────────────────────────
+    // Deletes an expense document from Firestore
     async deleteExpenseFromFirestore(expenseId) {
       const uid = auth.currentUser.uid
       const expenseRef = doc(db, 'users', uid, 'expenses', expenseId)
       await deleteDoc(expenseRef)
     },
 
-    // ─── Form handlers ─────────────────────────────────────────
+    // Opens the add expense form  with a blank state
     openNewForm() {
       this.editingId = null
       this.form = { item: '', price: '', quantity: '1', date: '', category: '' }
@@ -231,12 +236,14 @@ export default {
       this.showForm = true
     },
 
+    // Closes the opened add expense form
     closeForm() {
       this.showForm = false
       this.editingId = null
       this.formError = ''
     },
 
+    // Validates form inputs then either adds or updates depending on if expense already exists or is a new entry.
     async submitExpense() {
       // ── Validation (FR-03 AC2) ──
       const f = this.form
@@ -300,6 +307,7 @@ export default {
       }
     },
 
+    // Opens the edit expense form pre-populated with the expense's current values
     editExpense(exp) {
       this.form = {
         item: exp.item,
@@ -312,11 +320,13 @@ export default {
       this.showForm = true
     },
 
+    // Stores the ID and opens the delete confirmation modal
     deleteExpense(id) {
       this.pendingDeleteId = id
       this.showDeleteModal = true
     },
 
+    // Called when the user confirms deletion in the delete confirmation modal
     async confirmDelete() {
       this.deleting = true
       try {

@@ -15,8 +15,11 @@ export function useCPI() {
   const cpiError   = ref(false)
   const cpiLoading = ref(true)
 
+  // Stores the raw API rows so updateCPI() can recompute without re-fetching.
   let cachedRows = []
 
+  // Fetches all CPI data from SingStat and extracts the list of available years.
+  // Falls back to hardcoded 2025 values if the fetch fails.
   async function fetchCPI() {
     try {
       const res = await fetch(
@@ -31,7 +34,8 @@ export function useCPI() {
 
       cachedRows = rows
 
-      // ✅ extract years
+      // Extract unique years from the column keys of the first row.
+      // Column keys are formatted as 'YYYY Mon' e.g. '2025 Jan'.
       const columns = rows[0].columns
       const yearsSet = new Set()
 
@@ -51,6 +55,7 @@ export function useCPI() {
       console.error('CPI fetch failed:', err)
       cpiError.value = true
 
+      // Hardcoded fallback — update periodically
       cpiOverall.value = 1.2
       cpiByCategory.value = {
         Food: 2.1, Housing: 0.8, Transport: 1.5,
@@ -64,18 +69,21 @@ export function useCPI() {
     }
   }
 
+  // Recomputes CPI values for the currently selected year from cachedRows.
+  // Averages all monthly values within the year for each category.
   function updateCPI() {
     if (!cachedRows.length || !selectedYear.value) return
 
     const columns = cachedRows[0].columns
 
-    // get all months in selected year
+    // Find column indices that belong to the selected year.
     const indices = columns
       .map((col, i) => col.key.includes(selectedYear.value) ? i : -1)
       .filter(i => i !== -1)
 
     if (!indices.length) return
 
+    // Maps SingStat row labels to internal category keys.
     const CATEGORY_MAP = {
       'All Items':                    'overall',
       'Food':                         'Food',
@@ -98,6 +106,7 @@ export function useCPI() {
       let sum = 0
       let count = 0
 
+      // Average all monthly values within the selected year.
       indices.forEach(i => {
         const val = parseFloat(row.columns?.[i]?.value)
         if (!isNaN(val)) {
@@ -121,6 +130,7 @@ export function useCPI() {
     cpiPeriod.value = selectedYear.value
   }
 
+  // Re-run updateCPI whenever the user changes the selected year.
   watch(selectedYear, updateCPI)
 
   fetchCPI()

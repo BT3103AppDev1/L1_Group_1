@@ -20,9 +20,9 @@ import TopBar from './components/TopBar.vue'
 import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase.js'
 
-const TIMEOUT_DURATION = 1000 * 60 * 30
-const THROTTLE_DELAY = 1000
-const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
+const TIMEOUT_DURATION = 1000 * 60 * 30  // 30 minutes in milliseconds
+const THROTTLE_DELAY = 1000  // 1 second in milliseconds
+const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']  // Events that will reset inactivity timer
 
 export default {
   name: 'App',
@@ -30,18 +30,20 @@ export default {
 
   data() {
     return {
-      timer: null,
-      throttledResetTimer: null,
-      authUnsubscribe: null
+      timer: null,  // Inactivity timer object
+      throttledResetTimer: null,  // Throttled timer object
+      authUnsubscribe: null  // Save unsubscribe function for clean up later
     }
   },
 
   methods: {
+    // Resets/Initialises inactivity timer to 30 minutes, called whenver an activtity is sensed
     resetTimer() {
       clearTimeout(this.timer)
       this.timer = setTimeout(this.handleTimeout, TIMEOUT_DURATION)
     },
 
+    // Signs user out, called after 30 minutes of inactivity
     async handleTimeout() {
       if (auth.currentUser) {
         await signOut(auth)
@@ -49,12 +51,14 @@ export default {
       }
     },
 
+    // Initialises timer, throttler and activity event listeners
     startActivityTracking() {
       this.throttledResetTimer = this.throttle(this.resetTimer, THROTTLE_DELAY)
       ACTIVITY_EVENTS.forEach(event => window.addEventListener(event, this.resetTimer))
       this.resetTimer()
     },
 
+    // Cleans up timer, throttler, and activity event listeners to avoid memory leak
     stopActivityTracking() {
       if (this.throttledResetTimer) {
         ACTIVITY_EVENTS.forEach(event => window.removeEventListener(event, this.resetTimer))
@@ -63,6 +67,7 @@ export default {
       clearTimeout(this.timer)
     },
 
+    // Throttle function to prevent activity listeners from firing too many times in quick succession.
     throttle(fn, delay) {
       let lastCall = 0
       return function (...args) {
@@ -75,6 +80,8 @@ export default {
     }
   },
 
+  // Only track inactivity on logged in pages
+  // No need to track on login and register pages.
   mounted() {
     this.authUnsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -85,6 +92,7 @@ export default {
     })
   },
 
+  // Clean up to prevent memory leak
   beforeUnmount() {
     this.stopActivityTracking()
     this.authUnsubscribe?.()

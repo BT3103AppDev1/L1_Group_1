@@ -29,6 +29,7 @@ const router = createRouter({
   routes,
 })
 
+// Used in route guard reliably get the current user's sign-in state by waiting for the SDK to finish initializing. 
 function getCurrentUser() {
   return new Promise((resolve) => {
     const auth = getAuth()
@@ -41,6 +42,8 @@ function getCurrentUser() {
 
 const authPages = ['Login', 'Register']
 
+// Route guard, checks if user is authenticated when changing views
+// Redirects to login if not authenticated
 router.beforeEach(async (to, from, next) => {
   const user = await getCurrentUser()
 

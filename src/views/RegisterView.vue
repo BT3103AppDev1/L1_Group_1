@@ -1,6 +1,7 @@
 <template>
   <div class="register-bg">
     <div class="register-card">
+      <!-- App Branding -->
       <div class="mb-20">
         <div class="register-logo">P3</div>
         <div class="register-subtitle">Purchasing Power Pro</div>
@@ -8,10 +9,12 @@
 
       <div class="register-title">Create Account</div>
 
+      <!-- General error message -->
       <div v-if="errors.general" class="error-box">
         <span>{{ errors.general }}</span>
       </div>
 
+      <!-- Field to enter email -->
       <form @submit.prevent="handleRegister">
         <div class="form-group">
           <label class="form-label">Email</label>
@@ -22,9 +25,11 @@
             placeholder="you@example.com"
             required
           />
+          <!-- Email error message -->
           <span v-if="errors.email" class="text-danger fs-12 mt-4" style="display:block">{{ errors.email }}</span>
         </div>
 
+        <!-- Field to enter password -->
         <div class="form-group">
           <label class="form-label">Password</label>
           <input
@@ -34,9 +39,11 @@
             placeholder="Min 8 chars, 1 upper, 1 lower, 1 number/symbol"
             required
           />
+          <!-- Password error message -->
           <span v-if="errors.password" class="text-danger fs-12 mt-4" style="display:block">{{ errors.password }}</span>
         </div>
 
+        <!-- Field to re-enter password and confirm it is correct -->
         <div class="form-group">
           <label class="form-label">Confirm Password</label>
           <input
@@ -46,14 +53,17 @@
             placeholder="Re-enter password"
             required
           />
+          <!--Confirm password error message -->
           <span v-if="errors.confirmPassword" class="text-danger fs-12 mt-4" style="display:block">{{ errors.confirmPassword }}</span>
         </div>
 
+        <!-- Placeholder while creating account -->
         <button type="submit" class="btn-primary" :disabled="loading" style="margin-top:8px">
           {{ loading ? 'Creating account...' : 'Register' }}
         </button>
       </form>
 
+      <!-- Link to redirect to login page for existing users -->
       <p class="register-footer">
         Already have an account? <router-link to="/login" class="link">Log in</router-link>
       </p>
@@ -72,13 +82,18 @@ const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
+
+// Per-field error messages shown inline below each input
+// Initialised to default values
+// Reactive to specific errors
 const errors = reactive({
   email: '',
   password: '',
   confirmPassword: '',
-  general: ''
+  general: ''  // Shown at the top for non-field-specific Firebase errors
 })
 
+// Reset errors to default values
 function clearErrors() {
   errors.email = ''
   errors.password = ''
@@ -86,6 +101,8 @@ function clearErrors() {
   errors.general = ''
 }
 
+// Client-side validation — checks format, strength, and confirmation match.
+// Returns false and populates errors if anything fails.
 function validate() {
   clearErrors()
   let valid = true
@@ -120,6 +137,9 @@ function validate() {
   return valid
 }
 
+// Attempts to create the Firebase account if client-side checks pass
+// Subject to Firebase validity checks
+// Immediately signs the user out and redirects them to login rather than being auto-authenticated
 async function handleRegister() {
   if (!validate()) return
 

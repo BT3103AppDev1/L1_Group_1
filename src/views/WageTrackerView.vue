@@ -171,36 +171,47 @@ export default {
       submitting: false,
       showForm: false,
       editingId: null,
-      form: { amount: '', effectiveDate: '' },
+      form: { amount: '', effectiveDate: '' }, // Default values
       formError: '',
-      unsubscribe: null,
+      unsubscribe: null, // Holds the Firestore unsubscribe function for proper cleanup
 
-      // ── Delete modal (same pattern as ExpensesView) ──
+      // For delete modal state
       showDeleteModal: false,
       pendingDeleteId: null,
       deleting: false,
 
-      interval: 'monthly',
+      interval: 'monthly', // Controls whether monthly or yearly view, set to monthly view by default
     }
   },
 
   computed: {
+    // Switches between MoM and YoY CPI composable based on the interval toggle
     activeCpi() {
       return this.interval === 'monthly' ? this.momCpi : this.yoyCpi
     },
+
+    // Getter for loading state
     cpiLoading() {
       return this.activeCpi.cpiLoading.value
     },
+
+    // Overall CPI rate for the active interval
     cpiRate() {
       const data = this.activeCpi.cpiData.value
       if (!data) return null
       return data.overall
     },
+
+    // Source label shown below the CPI card e.g. 'Department of Statistics Singapore · Feb 2026'
     cpiPeriodLabel() {
       const data = this.activeCpi.cpiData.value
       if (!data) return ''
       return data.source ?? ''
     },
+
+    // Nominal wage growth rate for the active interval.
+    // Monthly: compares the two most recent entries.
+    // Yearly: finds the entry closest to exactly one year before the latest entry.
     wageGrowth() {
       if (this.wages.length < 2) return null
       const latest = this.wages[0]
@@ -222,6 +233,9 @@ export default {
         return ((latest.amount - closest.amount) / closest.amount) * 100
       }
     },
+
+    // Real wage growth = nominal wage growth minus CPI inflation
+    // Positive means purchasing power is increasing, negative means it's eroding
     realGrowth() {
       if (this.wageGrowth === null || this.cpiRate === null) return null
       return this.wageGrowth - this.cpiRate
@@ -229,16 +243,20 @@ export default {
   },
 
   mounted() {
+    // Create listener for real time updates to wage entries
     this.listenToWages()
+    // Fetch both CPI sources on mount from composables so switching interval is instant
     this.momCpi.fetchCPI()
     this.yoyCpi.fetchCPI()
   },
 
   beforeUnmount() {
+    // Clean up the Firestore real-time listener to prevent memory leaks
     if (this.unsubscribe) this.unsubscribe()
   },
 
   methods: {
+    // Sets up a real-time Firestore listener, ordered by date descending
     listenToWages() {
       const uid = auth.currentUser.uid
       const wagesRef = collection(db, 'users', uid, 'wages')
@@ -252,7 +270,7 @@ export default {
       })
     },
 
-    // ── Form: open for add ──
+    // Opens the add wage form  with a blank state
     openForm() {
       this.editingId = null
       this.form = { amount: '', effectiveDate: '' }
@@ -260,7 +278,7 @@ export default {
       this.showForm = true
     },
 
-    // ── Form: open for edit (same pattern as ExpensesView.editExpense) ──
+    // Opens the edit wage form pre-populated with the wage entry's current values
     openEdit(wage) {
       this.editingId = wage.id
       this.form = {
@@ -271,12 +289,14 @@ export default {
       this.showForm = true
     },
 
+    // Closes opened add/edit wage form
     closeForm() {
       this.showForm = false
       this.editingId = null
       this.formError = ''
     },
 
+    // Basic validation for amount and date data before writing to Firestore
     validateWage(amount, effectiveDate) {
       if (!amount) return 'Amount is required.'
       const parsed = parseFloat(amount)
@@ -286,12 +306,14 @@ export default {
       return null
     },
 
-    // ── Submit: handles both add and update ──
+    // Writes data to Firestore
+    // Handles both add and update — derives a display date string from the ISO date
     async submitWageEntry() {
       this.formError = ''
       const error = this.validateWage(this.form.amount, this.form.effectiveDate)
       if (error) { this.formError = error; return }
 
+      // Convert 'YYYY-MM-DD' to 'DD/MM/YYYY' for display in the table
       const [yyyy, mm, dd] = this.form.effectiveDate.split('-')
       const displayDate = `${dd}/${mm}/${yyyy}`
       this.submitting = true
@@ -325,13 +347,13 @@ export default {
       }
     },
 
-    // ── Delete: open modal (same as ExpensesView.deleteExpense) ──
+    // Stores the ID and opens the delete confirmation modal
     deleteWage(id) {
       this.pendingDeleteId = id
       this.showDeleteModal = true
     },
 
-    // ── Delete: confirmed (same as ExpensesView.confirmDelete) ──
+    // Called when the user confirms deletion in the delete confirmation modal
     async confirmDelete() {
       this.deleting = true
       try {
@@ -347,6 +369,8 @@ export default {
       }
     },
 
+    // Computes the % change between a wage entry and the one after it in the sorted list.
+    // The oldest entry (last in the array) shows '-' since there's nothing to compare against.
     calcChange(index) {
       if (index === this.wages.length - 1) return { text: '-', color: 'var(--text-muted)' }
       const current = this.wages[index].amount

@@ -46,6 +46,8 @@ export default {
     data: { type: Array, required: true },
   },
   computed: {
+    // Largest absolute value across all personal and CPI values.
+    // Used to scale bar widths so the largest bar fills the available track width.
     maxAbsVal() {
       const vals = this.data.flatMap(d => [
         Math.abs(d.personal ?? 0),
@@ -54,6 +56,9 @@ export default {
       const max = Math.max(...vals)
       return max > 0 ? max : 1
     },
+
+    // True if any value in the dataset is negative.
+    // Switches the chart from simple left-aligned bars to a diverging (centre-axis) layout.
     hasNegative() {
       return this.data.some(
         d => (d.personal != null && d.personal < 0) || (d.cpi != null && d.cpi < 0)
@@ -61,6 +66,9 @@ export default {
     },
   },
   methods: {
+    // Returns the inline style for a bar element.
+    // In non-diverging mode: bars grow from the left edge (0%) up to 100%.
+    // In diverging mode: the centre axis sits at 50%, positive bars extend right, negative bars extend left from the centre.
     barStyle(value, d) {
       if (value === null || value === undefined) return { width: '0%' }
 
@@ -93,10 +101,14 @@ export default {
         }
       }
     },
+
+    // Red bar if personal inflation exceeds the CPI benchmark, green otherwise
     barColor(d) {
       if (d.cpi === null || d.cpi === undefined || d.personal > d.cpi) return '#EF4444'
       return '#0FA878'
     },
+
+    // Same logic as barColor — applied to the numeric label beside each bar
     valColor(d) {
       if (d.cpi === null || d.cpi === undefined || d.personal > d.cpi) return '#EF4444'
       return '#0FA878'

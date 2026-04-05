@@ -55,6 +55,7 @@
     },
     emits: ['update:modelValue', 'confirm', 'cancel'],
     computed: {
+      // CSS class applied to the icon circle, sets background and icon colour per variant
       iconClass() {
         return {
           'icon-danger': this.variant === 'danger',
@@ -62,6 +63,7 @@
           'icon-logout': this.variant === 'logout',
         }
       },
+      // CSS class applied to the confirm button, sets background colour per variant
       confirmBtnClass() {
         return {
           'btn-confirm-danger': this.variant === 'danger',
@@ -71,6 +73,7 @@
       }
     },
     methods: {
+      // Closes the modal and emits 'cancel' so the parent can react if needed.
       handleCancel() {
         this.$emit('update:modelValue', false)
         this.$emit('cancel')
