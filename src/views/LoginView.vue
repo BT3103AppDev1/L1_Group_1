@@ -1,39 +1,44 @@
 <template>
-    <div class="login-bg">
-      <div class="login-card">
-        <div style="text-align:center; margin-bottom:32px;">
-          <div class="login-logo">P3</div>
-          <div class="login-subtitle">Purchasing Power Pro</div>
-        </div>
-  
-        <div class="login-title">Welcome back</div>
-  
-        <div v-if="loginError" class="error-box">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {{ loginError }}
-        </div>
-  
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input v-model="email" type="email" class="form-input" placeholder="you@example.com" @keyup.enter="handleLogin" />
-        </div>
-  
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <input v-model="password" type="password" class="form-input" placeholder="Enter your password" @keyup.enter="handleLogin" />
-        </div>
-  
-        <button class="btn-primary" @click="handleLogin">Sign In</button>
-  
-        <div style="text-align:center; margin-top:20px; font-size:13px; color:var(--text-secondary);">
-          Don't have an account?
-          <span class="link" @click="goToRegister">Register</span>
-        </div>
+  <!-- Full-page centered login layout -->
+  <div class="login-bg">
+    <div class="login-card">
+      <!-- App branding -->
+      <div style="text-align:center; margin-bottom:32px;">
+        <div class="login-logo">P3</div>
+        <div class="login-subtitle">Purchasing Power Pro</div>
+      </div>
+
+      <div class="login-title">Welcome back</div>
+
+       <!-- Inline error message shown on failed login or validation -->
+      <div v-if="loginError" class="error-box">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        {{ loginError }}
+      </div>
+
+      <!-- Email and password fields — Enter key triggers login on both -->
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input v-model="email" type="email" class="form-input" placeholder="you@example.com" @keyup.enter="handleLogin" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input v-model="password" type="password" class="form-input" placeholder="Enter your password" @keyup.enter="handleLogin" />
+      </div>
+
+      <button class="btn-primary" @click="handleLogin">Sign In</button>
+
+      <!-- Registration link -->
+      <div style="text-align:center; margin-top:20px; font-size:13px; color:var(--text-secondary);">
+        Don't have an account?
+        <span class="link" @click="goToRegister">Register</span>
       </div>
     </div>
-  </template>
+  </div>
+</template>
   
   <script>
   import { auth } from '../firebase'
@@ -53,12 +58,14 @@
         this.$router.push('/register')
       },
   
+      // Basic regex check — Firebase does deeper validation server-side
       validateEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         return emailRegex.test(email)
       },
   
       async handleLogin() {
+        // Client-side validation before hitting Firebase
         if (!this.validateEmail(this.email)) {
           this.loginError = 'Please enter a valid email address.'
           return
@@ -75,6 +82,7 @@
           await signInWithEmailAndPassword(auth, this.email, this.password)
           this.$router.push('/')
         } catch (err) {
+        // Consolidate credential errors into a single vague message to avoid exposing whether the email exists
           if (
             err.code === 'auth/user-not-found' ||
             err.code === 'auth/wrong-password' ||
@@ -91,6 +99,7 @@
   </script>
   
   <style scoped>
+  /* Full-page gradient background */
   .login-bg {
     min-height: 100vh;
     display: flex; align-items: center; justify-content: center;

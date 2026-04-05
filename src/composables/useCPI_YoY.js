@@ -1,12 +1,17 @@
 // src/composables/useCPI_YoY.js
+// CPI composable for YoY % change data.
+// Values are already YoY % change — no further calculation needed.
+// Completely independent of useCPI_MoM.js — do not merge.
 
-// Values are already YoY % change, can read directly, no calculation needed.
+// M213811 — Percent Change In CPI Over Corresponding Period Of Previous Year (YoY), 2024 As Base Year
+
 
 import { ref, computed } from 'vue'
 
 const BASE_URL = `https://tablebuilder.singstat.gov.sg/api/table/tabledata/M213811`
 
 // ─── Hardcoded fallback (SingStat 2025 YoY) ──────────────────────────────────
+// Used when the SingStat API is unreachable. Update periodically.
 const HARDCODED_CPI = {
   period: '2025',
   overall: 0.9,
@@ -23,6 +28,8 @@ const HARDCODED_CPI = {
   }
 }
 
+// Maps each category to its SingStat series number and internal key.
+// seriesNo must match exactly what SingStat returns in the API response.
 const SERIES = [
   { search: 'All Items',   seriesNo: '1',    mapped: 'overall'       },
   { search: 'Food',        seriesNo: '1.0',  mapped: 'Food'          },
@@ -35,15 +42,18 @@ const SERIES = [
   { search: 'Education',   seriesNo: '1.09', mapped: 'Education'     },
 ]
 
+// Main exported function
 export function useCPI_YoY() {
-  const cpiOverall    = ref(null)
-  const cpiByCategory = ref({})
-  const cpiPeriod     = ref('')
+  const cpiOverall    = ref(null)  // Latest overall YoY CPI %
+  const cpiByCategory = ref({})  // Latest YoY CPI % by category
+  const cpiPeriod     = ref('')  // Period string of the latest data e.g. '2025'
   const cpiLoading    = ref(true)
   const cpiError      = ref(null)
-  const yearlyHistory = ref({})
+  const yearlyHistory = ref({})  // Full history used for period lookup
 
-
+  // Fetches a single series from the SingStat API,
+  // matching by seriesNo first,
+  // falling back to rowText match if seriesNo is not found.
   async function fetchSeries({ search, seriesNo }) {
     const res = await fetch(`${BASE_URL}?search=${encodeURIComponent(search)}&limit=100000`)
     if (!res.ok) throw new Error(`SingStat API returned ${res.status}`)
@@ -54,7 +64,8 @@ export function useCPI_YoY() {
         ?? null
   }
 
-
+  // Search columns from the end to find the most recent non-null value.
+  // YoY keys are 4-digit year strings e.g. '2025'.
   function getLatestValue(columns) {
     for (let i = columns.length - 1; i >= 0; i--) {
       const col = columns[i]
@@ -67,7 +78,8 @@ export function useCPI_YoY() {
     return null
   }
 
-  // Build yearly history of CPI data (for cpi comparison page)
+  // Builds a full yearly history object.
+  // Keyed by 'YYYY-MM' -> { overall||category: number }.
   function buildHistory(columns, mapped) {
     columns.forEach(col => {
       const year = col.key.trim()
@@ -79,7 +91,8 @@ export function useCPI_YoY() {
     })
   }
 
-  // ─── Live fetch
+  // Live fetch of all series in parallel.
+  // Falls back to hardcoded data if any error occurs.
   async function fetchCPI() {
     cpiLoading.value = true
     cpiError.value   = null
@@ -127,17 +140,18 @@ export function useCPI_YoY() {
     return yearlyHistory.value[year]?.overall ?? null
   }
 
-  // Get YoY category inflation rate for a specific period (for cpi comparison page)
+  // Get YoY inflation rate category breakdown for a specific period (for cpi comparison page)
   function getYearlyCategories(year) {
     const { overall, ...categories } = yearlyHistory.value[year] ?? {}
     return categories
   }
 
-  // ─── Get YoY % for a single category ─────────────────────────────────────
+  // Returns the latest YoY CPI % for a single category.
   function getCategoryCPI(category) {
     return cpiByCategory.value?.[category] ?? null
   }
 
+  // Unified shape for the latest CPI data.
   const cpiData = computed(() => {
     if (cpiOverall.value === null) return null
     return {

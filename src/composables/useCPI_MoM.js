@@ -9,6 +9,7 @@ import { ref, computed } from 'vue'
 const BASE_URL = `https://tablebuilder.singstat.gov.sg/api/table/tabledata/M213771`
 
 // ─── Hardcoded fallback (SingStat Feb 2026 MoM) ──────────────────────────────
+// Used when the SingStat API is unreachable. Update periodically.
 const HARDCODED_CPI = {
   period: 'Feb 2026',
   overall: 0.6,
@@ -25,6 +26,8 @@ const HARDCODED_CPI = {
   }
 }
 
+// Maps each category to its SingStat series number and internal key.
+// seriesNo must match exactly what SingStat returns in the API response.
 const SERIES = [
   { search: 'All Items',   seriesNo: '1',    mapped: 'overall'       },
   { search: 'Food',        seriesNo: '1.0',  mapped: 'Food'          },
@@ -37,20 +40,25 @@ const SERIES = [
   { search: 'Education',   seriesNo: '1.09', mapped: 'Education'     },
 ]
 
+// Converts SingStat month abbreviations to zero-padded month numbers.
 const MONTH_TO_NUM = {
   Jan: '01', Feb: '02', Mar: '03', Apr: '04',
   May: '05', Jun: '06', Jul: '07', Aug: '08',
   Sep: '09', Oct: '10', Nov: '11', Dec: '12'
 }
 
+// Main exported function
 export function useCPI_MoM() {
-  const cpiOverall     = ref(null)
-  const cpiByCategory  = ref({})
-  const cpiPeriod      = ref('')
+  const cpiOverall     = ref(null)  // Latest overall MoM CPI %
+  const cpiByCategory  = ref({})  // Latest MoM CPI % by category
+  const cpiPeriod      = ref('')  // Period string of the latest data e.g. 'Feb 2026'
   const cpiLoading     = ref(true)
   const cpiError       = ref(null)
-  const monthlyHistory = ref({})
+  const monthlyHistory = ref({}) // Full history used for trend chart and period lookup
 
+  // Fetches a single series from the SingStat API,
+  // matching by seriesNo first,
+  // falling back to rowText match if seriesNo is not found.
   async function fetchSeries({ search, seriesNo }) {
     const res = await fetch(`${BASE_URL}?search=${encodeURIComponent(search)}&limit=100000`)
     if (!res.ok) throw new Error(`SingStat API returned ${res.status}`)
@@ -61,6 +69,8 @@ export function useCPI_MoM() {
         ?? null
   }
 
+  // Search columns from the end to find the most recent non-null value.
+  // MoM keys are formatted as 'YYYY Mon' e.g. '2026 Feb'.
   function getLatestValue(columns) {
     for (let i = columns.length - 1; i >= 0; i--) {
       const col   = columns[i]
@@ -76,7 +86,8 @@ export function useCPI_MoM() {
     return null
   }
 
-  // ─── Build monthly history for overall (for 6-month trend chart) ─────────
+  // Builds a full monthly history object.
+  // Keyed by 'YYYY-MM' -> { overall: number }.
   function buildHistory(columns) {
     const history = {}
     columns.forEach(col => {
@@ -94,7 +105,8 @@ export function useCPI_MoM() {
     return history
   }
 
-  // Live fetch
+  // Live fetch of all series in parallel
+  // Falls back to hardcoded data if any error occurs.
   async function fetchCPI() {
     cpiLoading.value = true
     cpiError.value   = null
@@ -142,21 +154,22 @@ export function useCPI_MoM() {
     }
   }
 
-  // ─── Get MoM % for a specific 'YYYY-MM' (for 6-month trend chart) ────────
+  // Returns the overall MoM CPI % for a specific month.
   function getMonthlyRate(ym) {
     return monthlyHistory.value[ym]?.overall ?? null
   }
 
+  // Returns the category breakdown for a specific month.
   function getMonthlyCategories(ym) {
     return monthlyHistory.value[ym]?.categories ?? {}
   }
 
-  // ─── Get MoM % for a single category ─────────────────────────────────────
+  // Returns the latest MoM CPI % for a single category.
   function getCategoryCPI(category) {
     return cpiByCategory.value?.[category] ?? null
   }
 
-  // ─── Unified cpiData shape ────────────────────────────────────────────────
+  // Unified shape for the latest CPI data.
   const cpiData = computed(() => {
     if (cpiOverall.value === null) return null
     return {

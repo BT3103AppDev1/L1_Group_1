@@ -1,6 +1,8 @@
 <!-- src/components/SidebarNav.vue -->
 <template>
   <aside class="sidebar">
+
+    <!-- Confirmation before logging out -->
     <ConfirmModal
       v-model="showLogoutModal"
       variant="logout"
@@ -15,6 +17,7 @@
     <div class="sidebar-logo">P3</div>
     <div class="sidebar-subtitle">Purchasing Power Pro</div>
 
+    <!-- Router links to expenses, inflation, compare and wage views -->
     <nav>
       <router-link to="/expenses" class="nav-btn" active-class="active">
         <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -47,6 +50,7 @@
 
     <div class="sidebar-spacer"></div>
 
+    <!-- Logout button -->
     <button class="nav-btn logout-btn" @click="showLogoutModal = true">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
         <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -71,6 +75,9 @@ export default {
     }
   },
   methods: {
+    // Signs the user out of Firebase and redirects to the login page.
+    // loggingOut keeps the modal's confirm button in a loading state,
+    // to prevent double-clicks during the async sign-out.
     async confirmLogout() {
       this.loggingOut = true
       try {

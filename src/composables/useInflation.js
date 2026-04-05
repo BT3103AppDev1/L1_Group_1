@@ -7,7 +7,8 @@ const CATEGORIES = [
   'Education', 'Recreation', 'Clothing', 'Communication'
 ]
 
-// SingStat CPI category weightings (2024 Base Year)
+// SingStat CPI category weightings (2024 Base Year).
+// Used to compute a weighted average inflation rate across categories.
 const CATEGORY_WEIGHTS = {
   Food: 0.21,
   Housing: 0.25,
@@ -19,11 +20,14 @@ const CATEGORY_WEIGHTS = {
   Communication: 0.04,
 }
 
+// Main exported function
 export function useInflation() {
   const expenses = ref([])
   const loading = ref(true)
   const error = ref(null)
 
+  // Fetches all expenses for the current user from Firestore,
+  // ordered by date ascending.
   async function fetchExpenses() {
     loading.value = true
     error.value = null
@@ -45,16 +49,20 @@ export function useInflation() {
   }
 
   // ─── Helpers ───────────────────────────────────────────────
+
+  // Extracts the 'YYYY-MM' portion from a date string.
   function getYearMonth(dateStr) {
     return dateStr.substring(0, 7)
   }
 
+  // Returns the 'YYYY-MM' string n months before the given yearMonth.
   function subtractMonths(yearMonth, n) {
     const [year, month] = yearMonth.split('-').map(Number)
     const date = new Date(year, month - 1 - n, 1)
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
   }
 
+  // Groups a flat list of expenses into an object keyed by 'YYYY-MM'.
   function groupByMonth(expenseList) {
     const map = {}
     for (const exp of expenseList) {
@@ -65,6 +73,9 @@ export function useInflation() {
     return map
   }
 
+  // Computes the Laspeyres price index between two months' expense lists.
+  // Matches items by name across months and uses base month quantities as weights.
+  // Returns the % change, or null if there are no matching items.
   function calcLaspeyres(baseMonthExpenses, currentMonthExpenses) {
     if (!baseMonthExpenses?.length || !currentMonthExpenses?.length) return null
     const currentPriceMap = {}
@@ -86,6 +97,8 @@ export function useInflation() {
     return ((numerator / denominator) - 1) * 100
   }
 
+  // Runs calcLaspeyres for each category separately.
+  // Returns an object keyed by category with the % change for each.
   function calcCategoryLaspeyres(baseMonthExpenses, currentMonthExpenses) {
     const result = {}
     for (const category of CATEGORIES) {
@@ -96,6 +109,8 @@ export function useInflation() {
     return result
   }
 
+  // Computes a weighted average inflation rate from per-category rates.
+  // Categories with null rates are excluded and their weights redistributed.
   function calcWeightedInflation(categoryRates) {
     let weightedSum = 0
     let totalWeight = 0
@@ -111,7 +126,9 @@ export function useInflation() {
     return weightedSum / totalWeight
   }
 
-  // Computation stuff.
+  // Computation inflation values.
+
+  // Overall personal inflation comparing the latest month to the one before it.
   const personalInflationMoM = computed(() => {
     const byMonth = groupByMonth(expenses.value)
     const sortedMonths = Object.keys(byMonth).sort()
@@ -121,6 +138,7 @@ export function useInflation() {
     return calcWeightedInflation(calcCategoryLaspeyres(byMonth[previous], byMonth[current]))
   })
 
+  // Overall personal inflation comparing the latest month to the same month 12 months ago.
   const personalInflationYoY = computed(() => {
     const byMonth = groupByMonth(expenses.value)
     const sortedMonths = Object.keys(byMonth).sort()
@@ -130,6 +148,7 @@ export function useInflation() {
     return calcWeightedInflation(calcCategoryLaspeyres(byMonth[oneYearAgo], byMonth[current]))
   })
 
+  // Per-category inflation for MoM.
   const categoryInflationMoM = computed(() => {
     const byMonth = groupByMonth(expenses.value)
     const sortedMonths = Object.keys(byMonth).sort()
@@ -139,6 +158,7 @@ export function useInflation() {
     return calcCategoryLaspeyres(byMonth[previous], byMonth[current])
   })
 
+  // Per-category inflation for YoY.
   const categoryInflationYoY = computed(() => {
     const byMonth = groupByMonth(expenses.value)
     const sortedMonths = Object.keys(byMonth).sort()
@@ -148,6 +168,9 @@ export function useInflation() {
     return calcCategoryLaspeyres(byMonth[oneYearAgo], byMonth[current])
   })
 
+  // Builds the last 6 months of MoM inflation data for the trend chart.
+  // Each entry includes the month label, yearMonth key, and personal inflation rate.
+  // Months with no data default to 0 so the chart always renders 6 bars.
   const sixMonthTrend = computed(() => {
     const byMonth = groupByMonth(expenses.value)
     const sortedMonths = Object.keys(byMonth).sort()
@@ -169,6 +192,7 @@ export function useInflation() {
     return months
   })
 
+  // True if the user has logged expenses across at least 2 distinct months.
   const hasEnoughData = computed(() => Object.keys(groupByMonth(expenses.value)).length >= 2)
 
   return {

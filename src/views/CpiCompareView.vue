@@ -21,6 +21,7 @@
 
     <template v-if="!cpiLoading && !momCpiLoading && !inflationLoading && hasEnoughData">
 
+      <!-- Toggle button automatically disables yearly toggle if insufficient data -->
       <div class="toggle-group">
         <button class="toggle-btn" :class="{ active: selectedMode === 'month' }"
           @click="selectedMode = 'month'">
@@ -40,6 +41,7 @@
         </button>
       </div>
 
+      <!-- Error message if insufficient yearly data -->
       <div v-if="!hasYoYData" class="card" style="padding:10px 16px; font-size:12px; color:var(--text-muted); border-left:3px solid var(--border);">
         📅 Year-to-Year view requires 13+ months of expense data.
       </div>
@@ -165,6 +167,8 @@ const MONTH_LABELS = [
   { value: '12', label: 'December' },
 ]
 
+// SingStat CPI category weightings (2024 Base Year)
+// Used to calculate weighted average
 const WEIGHTS = {
   Food: 0.21, Housing: 0.25, Transport: 0.17,
   Healthcare: 0.07, Education: 0.07,
@@ -176,6 +180,8 @@ export default {
   components: { HorizontalBarChart },
 
   setup() {
+    // Importing data and functions from composables.
+
     const { cpiData, cpiLoading, cpiError, fetchCPI, getYearlyRate, getYearlyCategories } = useCPI_YoY()
 
     const {
@@ -195,6 +201,7 @@ export default {
       personalInflationYoY,
     } = useInflation()
 
+    // Fetch all data sources in parallel on mount
     fetchCPI()
     fetchCPIMoM()
     fetchExpenses()
@@ -214,6 +221,7 @@ export default {
 
   data() {
     return {
+      // Initialisation of default values
       selectedMode: 'month',
       selectedYear: null,
       selectedMonth: null,
@@ -221,14 +229,14 @@ export default {
   },
 
   computed: {
-    // ─── Available years from user expenses ───────────────────
+    // Unique years derived from the user's logged expenses, sorted descending
     availableExpenseYears() {
       if (!this.expenses?.length) return []
       const years = new Set(this.expenses.map(e => e.date.slice(0, 4)))
       return [...years].sort((a, b) => b - a)
     },
 
-    // ─── Available months in selected year ────────────────────
+    // Months within the selected year that have at least one expense logged
     availableExpenseMonths() {
       if (!this.expenses?.length || !this.selectedYear) return []
       const months = new Set(
@@ -239,7 +247,7 @@ export default {
       return MONTH_LABELS.filter(m => months.has(m.value))
     },
 
-    // ─── Selected period string ───────────────────────────────
+    // The currently selected period as a string — 'YYYY' in year mode, 'YYYY-MM' in month mode
     selectedPeriod() {
       if (!this.selectedYear) return null
       if (this.selectedMode === 'year') return this.selectedYear
@@ -247,7 +255,9 @@ export default {
       return `${this.selectedYear}-${this.selectedMonth}`
     },
 
-    // ─── Personal inflation for selected period ───────────────
+    // Personal inflation rate for the selected period.
+    // Year mode: compares the latest month of the selected year to exactly 12 months prior.
+    // Month mode: compares the selected month to the immediately preceding month.
     personalRate() {
       if (!this.expenses?.length || !this.selectedPeriod) return null
       const byMonth = this.groupExpensesByMonth()
@@ -272,7 +282,8 @@ export default {
       }
     },
 
-    // ─── Category breakdown for selected period ───────────────
+    // Per-category inflation breakdown for the selected period.
+    // Uses the same base/current month/year logic as personalRate.
     personalByCategory() {
       if (!this.expenses?.length || !this.selectedPeriod) return {}
       const byMonth = this.groupExpensesByMonth()
@@ -293,11 +304,14 @@ export default {
       }
     },
 
+    // Computed property to convert selected mode for display
     comparisonLabel() {
       return this.selectedMode === 'year' ? 'year-on-year' : 'month-on-month'
     },
 
-    // ─── CPI for selected period ──────────────────────────────
+    // Resolves the official CPI data for the selected period.
+    // Tries to find an exact match in yearlyHistory/monthlyHistory first.
+    // Falls back to the latest available CPI data if no exact match is found.
     activeCpi() {
       if (this.selectedMode === 'year') {
         if (!this.cpiData) return null
@@ -336,7 +350,7 @@ export default {
           ? this.getMonthlyCategories(this.selectedPeriod)
           : {}
 
-        // No data for selected month — fall back to latest
+        // No data for selected month - fall back to latest
         if (overallRate === null) {
           return {
             ...this.momCpiData,
@@ -357,11 +371,14 @@ export default {
       }
     },
 
+    // Computed property that calculates difference between personal inflation and official CPI for selected period
     difference() {
       if (this.personalRate == null || !this.activeCpi) return null
       return parseFloat((this.personalRate - this.activeCpi.overall).toFixed(2))
     },
 
+    // Data passed to HorizontalBarChart — one entry per category with personal and CPI rates.
+    // Falls back to the overall CPI rate for categories missing a specific CPI value.
     chartData() {
       if (!this.activeCpi) return []
       return CATEGORIES
@@ -375,22 +392,26 @@ export default {
         }))
     },
 
+    // Computed property to check if there is sufficient data for yearly view
     hasYoYData() {
       return this.personalInflationYoY !== null
     }
   },
 
   watch: {
+    // Initialise selectedYear to the most recent year once expenses load
     availableExpenseYears(years) {
       if (years.length && !this.selectedYear) {
         this.selectedYear = years[0]
       }
     },
+    // Initialise selectedMonth to the most recent month once year is set
     availableExpenseMonths(months) {
       if (months.length && !this.selectedMonth) {
         this.selectedMonth = months[months.length - 1].value
       }
     },
+    // Reset selectedMonth to the most recent month when the year changes
     selectedYear() {
       const months = this.availableExpenseMonths
       if (months.length) {
@@ -400,6 +421,7 @@ export default {
   },
 
   methods: {
+    // Groups the user's expenses into an object keyed by 'YYYY-MM'
     groupExpensesByMonth() {
       const map = {}
       for (const exp of this.expenses ?? []) {
@@ -410,6 +432,8 @@ export default {
       return map
     },
 
+    // Computes the Laspeyres price index per category between two months' expense lists.
+    // Items are matched by name. Returns % change per category, omitting unmatched ones.
     calcCategoryRates(baseList, currentList) {
       const result = {}
       for (const cat of CATEGORIES) {
@@ -431,6 +455,8 @@ export default {
       return result
     },
 
+    // Computes a weighted average inflation rate from per-category rates.
+    // Categories with no data are excluded and their weights redistributed.
     calcWeightedInflation(categoryRates) {
       let weightedSum = 0, totalWeight = 0
       for (const cat of CATEGORIES) {
@@ -446,12 +472,15 @@ export default {
         : parseFloat((weightedSum / totalWeight).toFixed(2))
     },
 
+    // Returns the 'YYYY-MM' string n months before the given yearMonth
     subtractMonths(yearMonth, n) {
       const [year, month] = yearMonth.split('-').map(Number)
       const date = new Date(year, month - 1 - n, 1)
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     },
 
+    // Formats a 'YYYY-MM' period string to a readable label e.g. 'Jan 2026'.
+    // Returns the input unchanged if it doesn't match the expected format (e.g. plain year '2025').
     formatPeriod(period) {
       if (!period) return period
       const parts = period.split('-')
