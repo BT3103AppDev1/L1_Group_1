@@ -177,7 +177,7 @@ export default {
   components: { HorizontalBarChart },
 
   setup() {
-    const { cpiData, cpiLoading, cpiError, fetchCPI } = useCPI_YoY()
+    const { cpiData, cpiLoading, cpiError, fetchCPI, getYearlyRate, getYearlyCategories } = useCPI_YoY()
 
     const {
       cpiData: momCpiData,
@@ -206,6 +206,8 @@ export default {
       expenses,
       getMonthlyRate,
       getMonthlyCategories,
+      getYearlyRate,
+      getYearlyCategories,
     }
   },
 
@@ -302,11 +304,32 @@ export default {
     activeCpi() {
       if (this.selectedMode === 'year') {
         if (!this.cpiData) return null
-        return {
-          ...this.cpiData,
-          period: this.selectedYear,
-          source: `Department of Statistics Singapore · ${this.selectedYear}`
+        const overallRateYear = this.getYearlyRate
+          ? this.getYearlyRate(this.selectedYear)
+          : null
+        const categoryRatesYear = this.getYearlyCategories
+          ? this.getYearlyCategories(this.selectedYear)
+          : null
+
+        // No data for selected year - fall back to latest
+        if (overallRateYear === null) {
+          return {
+            ...this.cpiData,
+            period: `${this.selectedYear} (latest available)`,
+            source: `Department of Statistics Singapore · latest`
+          }
         }
+
+        return {
+          overall: overallRateYear,
+          categories: Object.keys(categoryRatesYear).length
+            ? categoryRatesYear
+            : (this.cpiData.categories ?? {}),
+          period: this.selectedYear,
+          source: `Department of Statistics Singapore · ${this.selectedYear}`,
+          isLive: this.cpiData.isLive,
+        }
+
       } else {
         if (!this.momCpiData || !this.selectedPeriod) return null
         const overallRate = this.getMonthlyRate
