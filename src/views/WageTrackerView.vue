@@ -68,6 +68,48 @@
 
     </div>
 
+    <!-- ── Purchasing Power Alert (US-14) ── -->
+    <div v-if="wages.length === 0" class="alert-box alert-neutral">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div>
+        <div class="alert-title">No wage entry provided.</div>
+        <div class="alert-sub">Log your wage to see your purchasing power status.</div>
+      </div>
+    </div>
+
+    <div v-else-if="purchasingPowerStatus === 'healthy'" class="alert-box alert-healthy">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div>
+        <div class="alert-title">✅ Healthy — Your purchasing power is growing.</div>
+        <div class="alert-sub">
+          Your wage growth ({{ wageGrowth !== null ? (wageGrowth >= 0 ? '+' : '') + wageGrowth.toFixed(2) + '%' : 'N/A' }})
+          is outpacing inflation ({{ cpiRate !== null ? cpiRate.toFixed(2) + '%' : 'N/A' }})
+          by {{ realGrowth !== null ? Math.abs(realGrowth).toFixed(2) + '%' : 'N/A' }}.
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="purchasingPowerStatus === 'declining'" class="alert-box alert-declining">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      <div>
+        <div class="alert-title">⚠️ Declining Purchasing Power — Take action.</div>
+        <div class="alert-sub">
+          Your wage growth ({{ wageGrowth !== null ? (wageGrowth >= 0 ? '+' : '') + wageGrowth.toFixed(2) + '%' : 'N/A' }})
+          is behind inflation ({{ cpiRate !== null ? cpiRate.toFixed(2) + '%' : 'N/A' }})
+          by {{ realGrowth !== null ? Math.abs(realGrowth).toFixed(2) + '%' : 'N/A' }}.
+          Consider negotiating a raise.
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="alert-box alert-neutral">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div>
+        <div class="alert-title">Awaiting data...</div>
+        <div class="alert-sub">Add at least 2 wage entries and CPI data to see your status.</div>
+      </div>
+    </div>
+
     <!-- ── Header ── -->
     <div class="flex-between">
       <div class="fs-12 text-secondary">{{ wages.length }} entries logged</div>
@@ -171,47 +213,36 @@ export default {
       submitting: false,
       showForm: false,
       editingId: null,
-      form: { amount: '', effectiveDate: '' }, // Default values
+      form: { amount: '', effectiveDate: '' },
       formError: '',
-      unsubscribe: null, // Holds the Firestore unsubscribe function for proper cleanup
+      unsubscribe: null,
 
-      // For delete modal state
+      // ── Delete modal (same pattern as ExpensesView) ──
       showDeleteModal: false,
       pendingDeleteId: null,
       deleting: false,
 
-      interval: 'monthly', // Controls whether monthly or yearly view, set to monthly view by default
+      interval: 'monthly',
     }
   },
 
   computed: {
-    // Switches between MoM and YoY CPI composable based on the interval toggle
     activeCpi() {
       return this.interval === 'monthly' ? this.momCpi : this.yoyCpi
     },
-
-    // Getter for loading state
     cpiLoading() {
       return this.activeCpi.cpiLoading.value
     },
-
-    // Overall CPI rate for the active interval
     cpiRate() {
       const data = this.activeCpi.cpiData.value
       if (!data) return null
       return data.overall
     },
-
-    // Source label shown below the CPI card e.g. 'Department of Statistics Singapore · Feb 2026'
     cpiPeriodLabel() {
       const data = this.activeCpi.cpiData.value
       if (!data) return ''
       return data.source ?? ''
     },
-
-    // Nominal wage growth rate for the active interval.
-    // Monthly: compares the two most recent entries.
-    // Yearly: finds the entry closest to exactly one year before the latest entry.
     wageGrowth() {
       if (this.wages.length < 2) return null
       const latest = this.wages[0]
@@ -233,30 +264,30 @@ export default {
         return ((latest.amount - closest.amount) / closest.amount) * 100
       }
     },
-
-    // Real wage growth = nominal wage growth minus CPI inflation
-    // Positive means purchasing power is increasing, negative means it's eroding
     realGrowth() {
       if (this.wageGrowth === null || this.cpiRate === null) return null
       return this.wageGrowth - this.cpiRate
     },
+
+    // US-14: Purchasing Power Alert status
+    purchasingPowerStatus() {
+      if (this.wages.length === 0) return 'no-wage'
+      if (this.realGrowth === null) return 'awaiting'
+      return this.realGrowth >= 0 ? 'healthy' : 'declining'
+    },
   },
 
   mounted() {
-    // Create listener for real time updates to wage entries
     this.listenToWages()
-    // Fetch both CPI sources on mount from composables so switching interval is instant
     this.momCpi.fetchCPI()
     this.yoyCpi.fetchCPI()
   },
 
   beforeUnmount() {
-    // Clean up the Firestore real-time listener to prevent memory leaks
     if (this.unsubscribe) this.unsubscribe()
   },
 
   methods: {
-    // Sets up a real-time Firestore listener, ordered by date descending
     listenToWages() {
       const uid = auth.currentUser.uid
       const wagesRef = collection(db, 'users', uid, 'wages')
@@ -270,7 +301,7 @@ export default {
       })
     },
 
-    // Opens the add wage form  with a blank state
+    // ── Form: open for add ──
     openForm() {
       this.editingId = null
       this.form = { amount: '', effectiveDate: '' }
@@ -278,7 +309,7 @@ export default {
       this.showForm = true
     },
 
-    // Opens the edit wage form pre-populated with the wage entry's current values
+    // ── Form: open for edit (same pattern as ExpensesView.editExpense) ──
     openEdit(wage) {
       this.editingId = wage.id
       this.form = {
@@ -289,14 +320,12 @@ export default {
       this.showForm = true
     },
 
-    // Closes opened add/edit wage form
     closeForm() {
       this.showForm = false
       this.editingId = null
       this.formError = ''
     },
 
-    // Basic validation for amount and date data before writing to Firestore
     validateWage(amount, effectiveDate) {
       if (!amount) return 'Amount is required.'
       const parsed = parseFloat(amount)
@@ -306,14 +335,12 @@ export default {
       return null
     },
 
-    // Writes data to Firestore
-    // Handles both add and update — derives a display date string from the ISO date
+    // ── Submit: handles both add and update ──
     async submitWageEntry() {
       this.formError = ''
       const error = this.validateWage(this.form.amount, this.form.effectiveDate)
       if (error) { this.formError = error; return }
 
-      // Convert 'YYYY-MM-DD' to 'DD/MM/YYYY' for display in the table
       const [yyyy, mm, dd] = this.form.effectiveDate.split('-')
       const displayDate = `${dd}/${mm}/${yyyy}`
       this.submitting = true
@@ -347,13 +374,13 @@ export default {
       }
     },
 
-    // Stores the ID and opens the delete confirmation modal
+    // ── Delete: open modal (same as ExpensesView.deleteExpense) ──
     deleteWage(id) {
       this.pendingDeleteId = id
       this.showDeleteModal = true
     },
 
-    // Called when the user confirms deletion in the delete confirmation modal
+    // ── Delete: confirmed (same as ExpensesView.confirmDelete) ──
     async confirmDelete() {
       this.deleting = true
       try {
@@ -369,8 +396,6 @@ export default {
       }
     },
 
-    // Computes the % change between a wage entry and the one after it in the sorted list.
-    // The oldest entry (last in the array) shows '-' since there's nothing to compare against.
     calcChange(index) {
       if (index === this.wages.length - 1) return { text: '-', color: 'var(--text-muted)' }
       const current = this.wages[index].amount
@@ -405,4 +430,32 @@ export default {
 .icon-btn-accent:hover:not(:disabled)  { background: var(--accent, #0ea5e9); color: #fff; }
 .icon-btn-danger  { background: #fee2e2; color: #dc2626; }
 .icon-btn-danger:hover:not(:disabled)  { background: #dc2626; color: #fff; }
+
+/* ── Purchasing Power Alert ── */
+.alert-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border-left: 4px solid transparent;
+}
+.alert-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.alert-sub { font-size: 12px; opacity: 0.85; }
+
+.alert-healthy {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+  color: #15803d;
+}
+.alert-declining {
+  background: #fff7ed;
+  border-left-color: #f97316;
+  color: #c2410c;
+}
+.alert-neutral {
+  background: var(--surface-2, #f1f5f9);
+  border-left-color: #94a3b8;
+  color: var(--text-muted, #64748b);
+}
 </style>
