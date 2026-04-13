@@ -4,7 +4,7 @@
     <!-- ── Header + Period Toggle ── -->
     <div class="flex-between">
       <div>
-        <h1 style="margin:0; font-size:22px;">Dashboard</h1>
+        <h1 style="margin:0; font-size:22px;">Welcome to your Dashboard!</h1>
         <div class="fs-12 text-secondary">Your financial health at a glance</div>
       </div>
       <div class="toggle-group">
