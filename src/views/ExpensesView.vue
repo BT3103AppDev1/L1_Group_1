@@ -65,6 +65,14 @@
       </div>
     </div>
 
+    <!-- Warning Banner -->
+    <div style="background-color:#eff6ff; color:#1e3a8a; padding:12px 16px; border-radius:8px; font-size:13px; margin-top:16px; margin-bottom:16px; display:flex; gap:8px; align-items:flex-start; border:1px solid #bfdbfe;">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:0px;">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span><strong>Tip:</strong> Use the exact same item name (e.g., "doctor visit") when logging recurring expenses so inflation can be accurately tracked.</span>
+    </div>
+
     <!-- Filter Tabs (FR-04) -->
     <div style="display:flex; gap:6px; flex-wrap:wrap;">
       <button v-for="c in ['All', ...CATEGORIES]" :key="c"

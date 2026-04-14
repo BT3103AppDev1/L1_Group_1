@@ -140,7 +140,8 @@
 import { db, auth } from '../firebase'
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
 import { useInflation } from '../composables/useInflation'
-import { useCPI } from '../composables/useCPI'
+import { useCPI_MoM } from '../composables/useCPI_MoM'
+import { useCPI_YoY } from '../composables/useCPI_YoY'
 
 // SingStat CPI category weightings (2024 Base Year) — used to rank drivers
 // by their contribution to weighted personal inflation.
@@ -154,8 +155,9 @@ export default {
 
   setup() {
     const inflation = useInflation()
-    const cpi = useCPI()
-    return { inflation, cpi }
+    const mom = useCPI_MoM()
+    const yoy = useCPI_YoY()
+    return { inflation, mom, yoy }
   },
 
   data() {
@@ -168,7 +170,7 @@ export default {
 
   computed: {
     inflationLoading() { return this.inflation.loading.value },
-    cpiLoading() { return this.cpi.cpiLoading.value },
+    cpiLoading() { return this.period === 'mom' ? this.mom.cpiLoading.value : this.yoy.cpiLoading.value },
 
     // Current personal inflation rate for the active period
     personalRate() {
@@ -198,7 +200,8 @@ export default {
 
     // CPI overall rate (from useCPI — already averaged for the selected year)
     cpiOverall() {
-      return this.cpi.cpiOverall.value
+      const data = this.period === 'mom' ? this.mom.cpiData.value : this.yoy.cpiData.value
+      return data?.overall ?? null
     },
 
     cpiDiff() {
@@ -229,7 +232,7 @@ export default {
     // (personal category rate × CPI weight). Only positive contributors (rising).
     topDrivers() {
       const rates = this.categoryRates || {}
-      const cpiByCat = this.cpi.cpiByCategory.value || {}
+      const getCpi = this.period === 'mom' ? this.mom.getCategoryCPI : this.yoy.getCategoryCPI
       const drivers = []
       for (const [cat, rate] of Object.entries(rates)) {
         if (rate === null || rate === undefined) continue
@@ -238,7 +241,7 @@ export default {
         drivers.push({
           category: cat,
           personal: rate,
-          cpi: cpiByCat[cat] ?? null,
+          cpi: getCpi(cat),
           contribution: rate * weight,
         })
       }
@@ -249,6 +252,8 @@ export default {
 
   async mounted() {
     await this.inflation.fetchExpenses()
+    this.mom.fetchCPI()
+    this.yoy.fetchCPI()
     this.listenToWages()
   },
 
