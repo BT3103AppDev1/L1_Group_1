@@ -165,7 +165,9 @@ const categoryChartData = computed(() =>
     category: cat,
     personal: activeCategoryInflation.value[cat] != null ? parseFloat(activeCategoryInflation.value[cat].toFixed(1)) : null,
     cpi: getActiveCategoryCPI.value(cat) != null ? parseFloat(getActiveCategoryCPI.value(cat).toFixed(1)) : null,
-  })).sort((a, b) => (a.personal === null ? 1 : b.personal === null ? -1 : b.personal - a.personal))
+  }))
+  .filter(d => d.personal !== null)
+  .sort((a, b) => b.personal - a.personal)
 )
 
 // Data for MiniBarChart — the last 6 months of personal MoM inflation.
