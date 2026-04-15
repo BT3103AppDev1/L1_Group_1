@@ -61,7 +61,10 @@
           <div v-if="personalInflation !== null" style="font-family:var(--font-display); font-size:36px; font-weight:700;">
             {{ personalInflation.toFixed(2) }}%
           </div>
-          <div v-else style="font-family:var(--font-display); font-size:36px; font-weight:700; color:var(--text-muted);">--</div>
+          <!-- AC4: Show required message when calculation cannot be performed -->
+          <div v-else style="font-size:13px; color:var(--text-muted); padding-top:8px;">
+            Insufficient Data For Calculation.
+          </div>
           <div class="text-muted mt-4" style="font-size:11px;">
             {{ period === 'monthly' ? 'Month-on-Month' : 'Year-on-Year' }}
           </div>
@@ -83,7 +86,10 @@
             :style="{ color: diffFromCPI >= 0 ? 'var(--danger)' : 'var(--accent)' }">
             {{ diffFromCPI >= 0 ? '+' : '' }}{{ diffFromCPI.toFixed(2) }}%
           </div>
-          <div v-else style="font-family:var(--font-display); font-size:36px; font-weight:700; color:var(--text-muted);">--</div>
+          <!-- AC4: Show required message when calculation cannot be performed -->
+          <div v-else style="font-size:13px; color:var(--text-muted); padding-top:8px;">
+            Insufficient Data For Calculation.
+          </div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 <template>
   <div class="flex-col">
-
+ 
     <!-- ── Delete Confirm Modal (same as ExpensesView) ── -->
     <ConfirmModal
       v-model="showDeleteModal"
@@ -13,10 +13,10 @@
       @confirm="confirmDelete"
       @cancel="showDeleteModal = false"
     />
-
+ 
     <!-- ── Growth Rate + Inflation Summary Cards ── -->
     <div class="summary-grid">
-
+ 
       <!-- Wage Growth Rate Card -->
       <div class="card summary-card">
         <div class="summary-card-header">
@@ -26,7 +26,12 @@
             <button :class="['toggle-btn', interval === 'yearly' ? 'toggle-active' : '']" @click="interval = 'yearly'">Yearly</button>
           </div>
         </div>
-        <div v-if="wageGrowth === null" class="summary-empty">Add at least 2 wage entries to see growth rate.</div>
+        <div v-if="wageGrowth === null" class="summary-empty">
+          Add at least 2 wage entries to see growth rate.
+        </div>
+        <div v-else-if="typeof wageGrowth === 'string' && wageGrowth.startsWith('MISSING_')" class="summary-empty" style="color:#f97316;">
+          ⚠️ Requires {{ wageGrowth.replace('MISSING_', '') }} wage entry for yearly comparison.
+        </div>
         <div v-else class="summary-value-row">
           <span class="summary-value" :style="{ color: wageGrowth >= 0 ? 'var(--success, #22c55e)' : '#ef4444' }">
             {{ wageGrowth >= 0 ? '+' : '' }}{{ wageGrowth.toFixed(2) }}%
@@ -34,7 +39,7 @@
           <span class="summary-sub">{{ interval === 'monthly' ? 'vs last month' : 'vs last year' }}</span>
         </div>
       </div>
-
+ 
       <!-- SG CPI Inflation Card -->
       <div class="card summary-card">
         <div class="summary-card-header">
@@ -50,7 +55,7 @@
           <span class="summary-sub">{{ cpiPeriodLabel }}</span>
         </div>
       </div>
-
+ 
       <!-- Real Wage Growth Card -->
       <div class="card summary-card">
         <div class="summary-card-header">
@@ -65,9 +70,9 @@
           <span class="summary-sub">{{ realGrowth >= 0 ? '🟢 Beating inflation' : '🔴 Behind inflation' }}</span>
         </div>
       </div>
-
+ 
     </div>
-
+ 
     <!-- ── Purchasing Power Alert (US-14) ── -->
     <div v-if="wages.length === 0" class="alert-box alert-neutral">
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -76,32 +81,32 @@
         <div class="alert-sub">Log your wage to see your purchasing power status.</div>
       </div>
     </div>
-
+ 
     <div v-else-if="purchasingPowerStatus === 'healthy'" class="alert-box alert-healthy">
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       <div>
         <div class="alert-title">✅ Healthy — Your purchasing power is growing.</div>
         <div class="alert-sub">
-          Your wage growth ({{ wageGrowth !== null ? (wageGrowth >= 0 ? '+' : '') + wageGrowth.toFixed(2) + '%' : 'N/A' }})
+          Your wage growth ({{ typeof wageGrowth === 'number' ? (wageGrowth >= 0 ? '+' : '') + wageGrowth.toFixed(2) + '%' : 'N/A' }})
           is outpacing inflation ({{ cpiRate !== null ? cpiRate.toFixed(2) + '%' : 'N/A' }})
           by {{ realGrowth !== null ? Math.abs(realGrowth).toFixed(2) + '%' : 'N/A' }}.
         </div>
       </div>
     </div>
-
+ 
     <div v-else-if="purchasingPowerStatus === 'declining'" class="alert-box alert-declining">
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
       <div>
         <div class="alert-title">⚠️ Declining Purchasing Power — Take action.</div>
         <div class="alert-sub">
-          Your wage growth ({{ wageGrowth !== null ? (wageGrowth >= 0 ? '+' : '') + wageGrowth.toFixed(2) + '%' : 'N/A' }})
+          Your wage growth ({{ typeof wageGrowth === 'number' ? (wageGrowth >= 0 ? '+' : '') + wageGrowth.toFixed(2) + '%' : 'N/A' }})
           is behind inflation ({{ cpiRate !== null ? cpiRate.toFixed(2) + '%' : 'N/A' }})
           by {{ realGrowth !== null ? Math.abs(realGrowth).toFixed(2) + '%' : 'N/A' }}.
           Consider negotiating a raise.
         </div>
       </div>
     </div>
-
+ 
     <div v-else class="alert-box alert-neutral">
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       <div>
@@ -109,7 +114,7 @@
         <div class="alert-sub">Add at least 2 wage entries and CPI data to see your status.</div>
       </div>
     </div>
-
+ 
     <!-- ── Header ── -->
     <div class="flex-between">
       <div class="fs-12 text-secondary">{{ wages.length }} entries logged</div>
@@ -118,7 +123,7 @@
         Log Wage
       </button>
     </div>
-
+ 
     <!-- ── Add / Edit Form (same style as ExpensesView) ── -->
     <div v-if="showForm" class="card card-accent">
       <div class="fs-15 fw-600 mb-16">{{ editingId ? 'Edit Wage Entry' : 'Log Monthly Wage' }}</div>
@@ -143,12 +148,12 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- ── Loading ── -->
     <div v-if="loading" class="card" style="text-align:center; padding:40px; color:var(--text-muted); font-size:13px;">
       Loading wages...
     </div>
-
+ 
     <!-- ── Wages Table ── -->
     <div v-else class="card">
       <table>
@@ -182,10 +187,10 @@
         No wage entries yet.
       </div>
     </div>
-
+ 
   </div>
 </template>
-
+ 
 <script>
 import ConfirmModal from '../components/ConfirmModal.vue'
 import { db, auth } from '../firebase'
@@ -195,17 +200,17 @@ import {
 } from 'firebase/firestore'
 import { useCPI_MoM } from '../composables/useCPI_MoM'
 import { useCPI_YoY } from '../composables/useCPI_YoY'
-
+ 
 export default {
   name: 'WageTrackerView',
   components: { ConfirmModal },
-
+ 
   setup() {
     const momCpi = useCPI_MoM()
     const yoyCpi = useCPI_YoY()
     return { momCpi, yoyCpi }
   },
-
+ 
   data() {
     return {
       wages: [],
@@ -216,16 +221,16 @@ export default {
       form: { amount: '', effectiveDate: '' },
       formError: '',
       unsubscribe: null,
-
+ 
       // ── Delete modal (same pattern as ExpensesView) ──
       showDeleteModal: false,
       pendingDeleteId: null,
       deleting: false,
-
+ 
       interval: 'monthly',
     }
   },
-
+ 
   computed: {
     activeCpi() {
       return this.interval === 'monthly' ? this.momCpi : this.yoyCpi
@@ -243,50 +248,59 @@ export default {
       if (!data) return ''
       return data.source ?? ''
     },
+ 
     wageGrowth() {
       if (this.wages.length < 2) return null
       const latest = this.wages[0]
+ 
       if (this.interval === 'monthly') {
         const previous = this.wages[1]
         return ((latest.amount - previous.amount) / previous.amount) * 100
       } else {
+        // Yearly: require an entry from the exact same month one year ago
         const latestDate = new Date(latest.effectiveDate)
-        const targetDate = new Date(latestDate)
-        targetDate.setFullYear(targetDate.getFullYear() - 1)
-        let closest = null
-        let minDiff = Infinity
-        for (let i = 1; i < this.wages.length; i++) {
-          const d = new Date(this.wages[i].effectiveDate)
-          const diff = Math.abs(d - targetDate)
-          if (diff < minDiff) { minDiff = diff; closest = this.wages[i] }
-        }
-        if (!closest) return null
-        return ((latest.amount - closest.amount) / closest.amount) * 100
+        const targetYearMonth = `${latestDate.getFullYear() - 1}-${String(latestDate.getMonth() + 1).padStart(2, '0')}`
+ 
+        const exactMatch = this.wages.find((w, i) => {
+          if (i === 0) return false
+          return w.effectiveDate.substring(0, 7) === targetYearMonth
+        })
+ 
+        // No exact same-month entry found — return a signal string so the
+        // template can tell the user which month's wage entry is missing.
+        if (!exactMatch) return `MISSING_${targetYearMonth}`
+ 
+        return ((latest.amount - exactMatch.amount) / exactMatch.amount) * 100
       }
     },
+ 
     realGrowth() {
+      // Treat the MISSING_ signal string the same as null
+      if (typeof this.wageGrowth === 'string') return null
       if (this.wageGrowth === null || this.cpiRate === null) return null
       return this.wageGrowth - this.cpiRate
     },
-
+ 
     // US-14: Purchasing Power Alert status
     purchasingPowerStatus() {
       if (this.wages.length === 0) return 'no-wage'
+      // Treat the MISSING_ signal string as awaiting
+      if (typeof this.wageGrowth === 'string') return 'awaiting'
       if (this.realGrowth === null) return 'awaiting'
       return this.realGrowth >= 0 ? 'healthy' : 'declining'
     },
   },
-
+ 
   mounted() {
     this.listenToWages()
     this.momCpi.fetchCPI()
     this.yoyCpi.fetchCPI()
   },
-
+ 
   beforeUnmount() {
     if (this.unsubscribe) this.unsubscribe()
   },
-
+ 
   methods: {
     listenToWages() {
       const uid = auth.currentUser.uid
@@ -300,7 +314,7 @@ export default {
         this.loading = false
       })
     },
-
+ 
     // ── Form: open for add ──
     openForm() {
       this.editingId = null
@@ -308,7 +322,7 @@ export default {
       this.formError = ''
       this.showForm = true
     },
-
+ 
     // ── Form: open for edit (same pattern as ExpensesView.editExpense) ──
     openEdit(wage) {
       this.editingId = wage.id
@@ -319,13 +333,13 @@ export default {
       this.formError = ''
       this.showForm = true
     },
-
+ 
     closeForm() {
       this.showForm = false
       this.editingId = null
       this.formError = ''
     },
-
+ 
     validateWage(amount, effectiveDate) {
       if (!amount) return 'Amount is required.'
       const parsed = parseFloat(amount)
@@ -334,17 +348,17 @@ export default {
       if (isNaN(new Date(effectiveDate).getTime())) return 'Please select a valid date.'
       return null
     },
-
+ 
     // ── Submit: handles both add and update ──
     async submitWageEntry() {
       this.formError = ''
       const error = this.validateWage(this.form.amount, this.form.effectiveDate)
       if (error) { this.formError = error; return }
-
+ 
       const [yyyy, mm, dd] = this.form.effectiveDate.split('-')
       const displayDate = `${dd}/${mm}/${yyyy}`
       this.submitting = true
-
+ 
       try {
         const uid = auth.currentUser.uid
         if (this.editingId) {
@@ -373,13 +387,13 @@ export default {
         this.submitting = false
       }
     },
-
+ 
     // ── Delete: open modal (same as ExpensesView.deleteExpense) ──
     deleteWage(id) {
       this.pendingDeleteId = id
       this.showDeleteModal = true
     },
-
+ 
     // ── Delete: confirmed (same as ExpensesView.confirmDelete) ──
     async confirmDelete() {
       this.deleting = true
@@ -395,7 +409,7 @@ export default {
         this.deleting = false
       }
     },
-
+ 
     calcChange(index) {
       if (index === this.wages.length - 1) return { text: '-', color: 'var(--text-muted)' }
       const current = this.wages[index].amount
@@ -409,7 +423,7 @@ export default {
   }
 }
 </script>
-
+ 
 <style scoped>
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 4px; }
 @media (max-width: 768px) { .summary-grid { grid-template-columns: 1fr; } }
@@ -430,7 +444,7 @@ export default {
 .icon-btn-accent:hover:not(:disabled)  { background: var(--accent, #0ea5e9); color: #fff; }
 .icon-btn-danger  { background: #fee2e2; color: #dc2626; }
 .icon-btn-danger:hover:not(:disabled)  { background: #dc2626; color: #fff; }
-
+ 
 /* ── Purchasing Power Alert ── */
 .alert-box {
   display: flex;
@@ -442,7 +456,7 @@ export default {
 }
 .alert-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
 .alert-sub { font-size: 12px; opacity: 0.85; }
-
+ 
 .alert-healthy {
   background: #f0fdf4;
   border-left-color: #22c55e;

@@ -22,6 +22,9 @@ export function useCPI() {
   // Falls back to hardcoded 2025 values if the fetch fails.
   async function fetchCPI() {
     try {
+
+      throw new Error('Forced CPI fetch failure for testing AC3')
+      
       const res = await fetch(
         `https://tablebuilder.singstat.gov.sg/api/table/tabledata/${CPI_RESOURCE_ID}`
       )

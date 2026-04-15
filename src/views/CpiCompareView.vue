@@ -180,8 +180,6 @@ export default {
   components: { HorizontalBarChart },
 
   setup() {
-    // Importing data and functions from composables.
-
     const { cpiData, cpiLoading, cpiError, fetchCPI, getYearlyRate, getYearlyCategories } = useCPI_YoY()
 
     const {
@@ -201,7 +199,6 @@ export default {
       personalInflationYoY,
     } = useInflation()
 
-    // Fetch all data sources in parallel on mount
     fetchCPI()
     fetchCPIMoM()
     fetchExpenses()
@@ -221,7 +218,6 @@ export default {
 
   data() {
     return {
-      // Initialisation of default values
       selectedMode: 'month',
       selectedYear: null,
       selectedMonth: null,
@@ -256,8 +252,6 @@ export default {
     },
 
     // Personal inflation rate for the selected period.
-    // Year mode: compares the latest month of the selected year to exactly 12 months prior.
-    // Month mode: compares the selected month to the immediately preceding month.
     personalRate() {
       if (!this.expenses?.length || !this.selectedPeriod) return null
       const byMonth = this.groupExpensesByMonth()
@@ -283,7 +277,6 @@ export default {
     },
 
     // Per-category inflation breakdown for the selected period.
-    // Uses the same base/current month/year logic as personalRate.
     personalByCategory() {
       if (!this.expenses?.length || !this.selectedPeriod) return {}
       const byMonth = this.groupExpensesByMonth()
@@ -304,14 +297,10 @@ export default {
       }
     },
 
-    // Computed property to convert selected mode for display
     comparisonLabel() {
       return this.selectedMode === 'year' ? 'year-on-year' : 'month-on-month'
     },
 
-    // Resolves the official CPI data for the selected period.
-    // Tries to find an exact match in yearlyHistory/monthlyHistory first.
-    // Falls back to the latest available CPI data if no exact match is found.
     activeCpi() {
       if (this.selectedMode === 'year') {
         if (!this.cpiData) return null
@@ -322,7 +311,6 @@ export default {
           ? this.getYearlyCategories(this.selectedYear)
           : null
 
-        // No data for selected year - fall back to latest
         if (overallRateYear === null) {
           return {
             ...this.cpiData,
@@ -350,7 +338,6 @@ export default {
           ? this.getMonthlyCategories(this.selectedPeriod)
           : {}
 
-        // No data for selected month - fall back to latest
         if (overallRate === null) {
           return {
             ...this.momCpiData,
@@ -371,14 +358,13 @@ export default {
       }
     },
 
-    // Computed property that calculates difference between personal inflation and official CPI for selected period
     difference() {
       if (this.personalRate == null || !this.activeCpi) return null
       return parseFloat((this.personalRate - this.activeCpi.overall).toFixed(2))
     },
 
-    // Data passed to HorizontalBarChart — one entry per category with personal and CPI rates.
-    // Falls back to the overall CPI rate for categories missing a specific CPI value.
+    // Data passed to HorizontalBarChart — sorted descending by personal inflation rate,
+    // matching the same ordering used in MyInflation's categoryChartData.
     chartData() {
       if (!this.activeCpi) return []
       return CATEGORIES
@@ -390,9 +376,9 @@ export default {
             (this.activeCpi.categories[cat] ?? this.activeCpi.overall).toFixed(2)
           )
         }))
+        .sort((a, b) => b.personal - a.personal) // ← descending by personal rate
     },
 
-    // Computed property to check if there is sufficient data for yearly view
     hasYoYData() {
       return this.personalInflationYoY !== null
     }
@@ -433,7 +419,6 @@ export default {
     },
 
     // Computes the Laspeyres price index per category between two months' expense lists.
-    // Items are matched by name. Returns % change per category, omitting unmatched ones.
     calcCategoryRates(baseList, currentList) {
       const result = {}
       for (const cat of CATEGORIES) {
@@ -456,7 +441,6 @@ export default {
     },
 
     // Computes a weighted average inflation rate from per-category rates.
-    // Categories with no data are excluded and their weights redistributed.
     calcWeightedInflation(categoryRates) {
       let weightedSum = 0, totalWeight = 0
       for (const cat of CATEGORIES) {
@@ -480,7 +464,6 @@ export default {
     },
 
     // Formats a 'YYYY-MM' period string to a readable label e.g. 'Jan 2026'.
-    // Returns the input unchanged if it doesn't match the expected format (e.g. plain year '2025').
     formatPeriod(period) {
       if (!period) return period
       const parts = period.split('-')
