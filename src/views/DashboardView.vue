@@ -217,14 +217,16 @@ export default {
       return ((latest.amount - previous.amount) / previous.amount) * 100
     },
 
+    // ── UPDATED: real growth now uses personal inflation instead of national CPI ──
     realGrowth() {
-      if (this.wageGrowth === null || this.cpiOverall === null) return 0
-      return this.wageGrowth - this.cpiOverall
+      if (this.wageGrowth === null || this.personalRate === null) return 0
+      return this.wageGrowth - this.personalRate
     },
 
+    // ── UPDATED: purchasing power status now depends on personalRate ──
     purchasingPowerStatus() {
       if (this.wages.length === 0) return 'no-wage'
-      if (this.wageGrowth === null || this.cpiOverall === null) return 'awaiting'
+      if (this.wageGrowth === null || this.personalRate === null) return 'awaiting'
       return this.realGrowth >= 0 ? 'healthy' : 'declining'
     },
 
