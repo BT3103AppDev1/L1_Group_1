@@ -1,5 +1,22 @@
 <template>
   <div class="hbar-container">
+
+    <!-- Legend -->
+    <div class="hbar-legend">
+      <div class="hbar-legend-item">
+        <span class="hbar-legend-dot hbar-legend-personal-green"></span>
+        <span>Your Inflation (below CPI)</span>
+      </div>
+      <div class="hbar-legend-item">
+        <span class="hbar-legend-dot hbar-legend-personal-red"></span>
+        <span>Your Inflation (above CPI)</span>
+      </div>
+      <div class="hbar-legend-item">
+        <span class="hbar-legend-dot hbar-legend-cpi"></span>
+        <span>National CPI</span>
+      </div>
+    </div>
+
     <div v-for="(d, i) in data" :key="i" class="hbar-row">
 
       <!-- Category Label -->
@@ -10,6 +27,7 @@
 
         <!-- Personal bar -->
         <div class="hbar-bar-row">
+          <div class="hbar-bar-label">You</div>
           <template v-if="d.personal !== null && d.personal !== undefined">
             <div class="hbar-bar-wrap">
               <div class="hbar-bar-inner" :style="barStyle(d.personal, d)"></div>
@@ -26,6 +44,7 @@
 
         <!-- CPI bar -->
         <div class="hbar-bar-row">
+          <div class="hbar-bar-label">CPI</div>
           <div class="hbar-bar-wrap">
             <div class="hbar-bar-inner hbar-bar-cpi" :style="barStyle(d.cpi, null)"></div>
           </div>
@@ -72,10 +91,9 @@ export default {
     barStyle(value, d) {
       if (value === null || value === undefined) return { width: '0%' }
 
-      const pct = (Math.abs(value) / this.maxAbsVal) * 50 // half-width since center is 50%
+      const pct = (Math.abs(value) / this.maxAbsVal) * 50
 
       if (!this.hasNegative) {
-        // No negatives in dataset — simple left-aligned bars
         const fullPct = (Math.abs(value) / this.maxAbsVal) * 100
         const bg = d ? this.barColor(d) : undefined
         return {
@@ -85,7 +103,6 @@ export default {
         }
       }
 
-      // Diverging layout: center axis at 50%
       const bg = d ? this.barColor(d) : undefined
       if (value >= 0) {
         return {
@@ -124,6 +141,36 @@ export default {
   gap: 12px;
 }
 
+/* ── Legend ── */
+.hbar-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border, #F3F4F6);
+  margin-bottom: 4px;
+}
+
+.hbar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted, #6B7280);
+}
+
+.hbar-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.hbar-legend-personal-green { background: #0FA878; }
+.hbar-legend-personal-red   { background: #EF4444; }
+.hbar-legend-cpi            { background: #D1D5DB; }
+
+/* ── Row layout ── */
 .hbar-row {
   display: flex;
   align-items: center;
@@ -150,6 +197,16 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Small "You" / "CPI" inline label */
+.hbar-bar-label {
+  width: 26px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted, #9CA3AF);
+  text-align: right;
 }
 
 .hbar-bar-wrap {
